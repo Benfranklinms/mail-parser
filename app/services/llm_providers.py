@@ -13,7 +13,8 @@ import json
 import logging
 from typing import Optional
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 logger = logging.getLogger(__name__)
 
@@ -136,16 +137,7 @@ def _gemini_extract(email_body: str, api_key: str, subject: str = "") -> dict:
 
     Uses structured JSON output mode for reliable parsing.
     """
-    genai.configure(api_key=api_key)
-
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        system_instruction=EXTRACTION_SYSTEM_PROMPT,
-        generation_config=genai.GenerationConfig(
-            response_mime_type="application/json",
-            temperature=0.1,  # Low temperature for consistent extraction
-        ),
-    )
+    client = genai.Client(api_key=api_key)
 
     # Compose the prompt with subject context
     prompt = f"Subject: {subject}\n\nEmail Body:\n{email_body}" if subject else email_body
@@ -153,7 +145,15 @@ def _gemini_extract(email_body: str, api_key: str, subject: str = "") -> dict:
     # Attempt with retry (1 retry on failure)
     for attempt in range(2):
         try:
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=EXTRACTION_SYSTEM_PROMPT,
+                    response_mime_type="application/json",
+                    temperature=0.1,
+                ),
+            )
 
             if not response.text:
                 logger.warning(f"Gemini returned empty response (attempt {attempt + 1})")

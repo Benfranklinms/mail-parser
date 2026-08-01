@@ -9,6 +9,7 @@ Tests cover:
 """
 
 import pytest
+from unittest.mock import patch, MagicMock
 from app.services.extraction import (
     pre_filter,
     regex_extract,
@@ -16,7 +17,9 @@ from app.services.extraction import (
     _extract_salary,
     _extract_date,
     _extract_links,
+    run_extraction_pipeline,
 )
+from app.services.llm_providers import extract_with_llm
 
 
 # =============================================================================
@@ -416,3 +419,83 @@ class TestRegexExtractIntegration:
 
         assert len(result["register_links"]) >= 1
         assert any("internshala.com" in link for link in result["register_links"])
+
+
+# =============================================================================
+# OpenRouter extraction tests
+# =============================================================================
+
+
+class TestOpenRouterExtraction:
+    """Tests for the OpenRouter LLM extraction stage."""
+
+    @patch("requests.post")
+    def test_openrouter_extract_success(self, mock_post):
+        # Mock successful OpenRouter API response
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"company": "Stripe", "role": "Backend Engineer", "role_type": "full-time", "salary_or_stipend": "12 LPA", "bond": "none", "last_date": null, "register_links": []}'
+                    }
+                }
+            ]
+        }
+        mock_post.return_value = mock_response
+
+        # Execute extraction
+        result = extract_with_llm(
+            email_body="Stripe is hiring Backend Engineers.",
+            api_key="mock-openrouter-key",
+            provider="openrouter",
+            subject="Job opening at Stripe",
+            model_id="meta-llama/llama-3.1-8b-instruct:free",
+        )
+
+        # Verify output
+        assert result["company"] == "Stripe"
+        assert result["role"] == "Backend Engineer"
+        assert result["role_type"] == "full-time"
+
+        # Verify POST payload and model parameter
+        mock_post.assert_called_once()
+        args, kwargs = mock_post.call_args
+        assert args[0] == "https://openrouter.ai/api/v1/chat/completions"
+        assert kwargs["json"]["model"] == "meta-llama/llama-3.1-8b-instruct:free"
+        assert kwargs["headers"]["Authorization"] == "Bearer mock-openrouter-key"
+
+    @patch("requests.post")
+    def test_run_pipeline_propagates_model_id(self, mock_post):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"company": "Google", "role": "Intern", "role_type": "internship", "salary_or_stipend": null, "bond": null, "last_date": null, "register_links": []}'
+                    }
+                }
+            ]
+        }
+        mock_post.return_value = mock_response
+
+        # Execute the pipeline (which filters, matches regex, and calls LLM)
+        result = run_extraction_pipeline(
+            email_body="Google is hiring interns. Apply now.",
+            subject="Google Internship",
+            sender="recruitment@google.com",
+            api_key="mock-key",
+            provider="openrouter",
+            model_id="google/gemma-2-9b-it:free",
+        )
+
+        assert result is not None
+        assert result["company"] == "Google"
+        assert result["role"] == "Intern"
+
+        # Verify model_id was forwarded
+        kwargs = mock_post.call_args[1]
+        assert kwargs["json"]["model"] == "google/gemma-2-9b-it:free"
+

@@ -69,9 +69,9 @@ export default function Dashboard() {
     );
 
     const statusLabels: Record<ApplicationStatus, string> = {
-      applied: "Marked as Applied 🚀",
-      result_out: "Moved to Result Out 🏆",
-      not_applied: "Reset to Not Applied ⏱️",
+      applied: "Marked as Applied",
+      result_out: "Moved to Result Out",
+      not_applied: "Reset to Not Applied",
     };
 
     toast.success(statusLabels[newStatus] || "Status updated");

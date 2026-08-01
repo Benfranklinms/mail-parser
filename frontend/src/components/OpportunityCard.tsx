@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Opportunity, ApplicationStatus } from "@/types";
-import { ExternalLink, Calendar, CheckCircle2, Clock, Award } from "lucide-react";
+import { ExternalLink, Calendar, CheckCircle2, Clock, Award, Banknote, Shield, AlertCircle } from "lucide-react";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -110,12 +110,14 @@ export function OpportunityCard({ opportunity, onStatusChange }: OpportunityCard
           {/* Details Pill Grid: Salary & Bond */}
           <div className="flex flex-wrap gap-2 text-xs">
             {salary_or_stipend && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-[var(--surface-muted)] border border-[var(--border)] font-mono-plex font-medium text-[var(--ink)] text-[11px]">
-                💰 {salary_or_stipend}
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--surface-muted)] border border-[var(--border)] font-mono-plex font-medium text-[var(--ink)] text-[11px]">
+                <Banknote className="w-3 h-3 text-[var(--ink-muted)]" />
+                <span>{salary_or_stipend}</span>
               </span>
             )}
-            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-[var(--surface-muted)] border border-[var(--border)] font-mono-plex text-[var(--ink-muted)] text-[11px]">
-              🔒 Bond: {bond || "None"}
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--surface-muted)] border border-[var(--border)] font-mono-plex text-[var(--ink-muted)] text-[11px]">
+              <Shield className="w-3 h-3 text-[var(--ink-muted)]" />
+              <span>Bond: {bond || "None"}</span>
             </span>
           </div>
         </div>
@@ -182,8 +184,9 @@ export function OpportunityCard({ opportunity, onStatusChange }: OpportunityCard
             </span>
           </div>
           {urgent && (
-            <span className="text-[9px] font-mono-plex text-[var(--accent)] font-bold block mt-0.5">
-              ⚠️ CLOSING SOON
+            <span className="text-[9px] font-mono-plex text-[var(--accent)] font-bold block mt-0.5 flex items-center justify-center gap-1">
+              <AlertCircle className="w-2.5 h-2.5" />
+              <span>CLOSING SOON</span>
             </span>
           )}
         </div>

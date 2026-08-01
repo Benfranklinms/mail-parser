@@ -1,4 +1,4 @@
-# 📬 Placement Mail Tracker
+# Placement Mail Tracker
 
 > Transform messy, unstructured college placement emails into a clean, structured, and trackable opportunity dashboard.
 
@@ -11,7 +11,7 @@
 
 ---
 
-## 🌟 Overview
+## Overview
 
 College placement cell emails arrive in inconsistent, unstructured formats. Students manually parse through long email threads to find the company name, CTC/stipend, bond details, registration deadline, and application links — with no easy way to track what has already been applied to.
 
@@ -19,23 +19,23 @@ College placement cell emails arrive in inconsistent, unstructured formats. Stud
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-- 🎟️ **Signature Boarding Pass UI**: Opportunities rendered as physical ticket stubs featuring a perforated dashed divider, monospace departure deadlines, and an interactive stamp animation when marking as *Applied*.
-- 🎨 **Claude Brand Aesthetic**: Styled with Anthropic's signature warm paper color palette (`#FAF7F2` canvas, `#D97757` terracotta accent, `#1F1E1B` dark charcoal ink) and modern sans typography (`Inter`).
-- 🤖 **Hybrid Regex + LLM Extraction**:
+- **Signature Boarding Pass UI**: Opportunities rendered as physical ticket stubs featuring a perforated dashed divider, monospace departure deadlines, and an interactive stamp animation when marking as *Applied*.
+- **Claude Brand Aesthetic**: Styled with Anthropic's signature warm paper color palette (`#FAF7F2` canvas, `#D97757` terracotta accent, `#1F1E1B` dark charcoal ink) and modern sans typography (`Inter`).
+- **Hybrid Regex + LLM Extraction**:
   - **Stage 1 (Pre-filter)**: Keyword heuristics filter out newsletters, exam notices, and circulars.
   - **Stage 2 (Regex Pass)**: Extracts CTC (`6 LPA`, `₹25,000/month`), registration deadlines, and application links (`forms.gle`, `greenhouse.io`, `lever.co`) instantly for free.
   - **Stage 3 (LLM Fallback)**: Uses LLMs to parse complex natural language fields (company, role, role type, bond) only when needed.
-- 🔑 **Bring-Your-Own-Key LLM Engine**: Supports **Google Gemini** natively and **OpenRouter** (accessing 300+ models with curated shortlists and `FREE` tier badges). Users supply their own API keys — the app itself never incurs LLM costs.
-- ⚡ **Background Sync Orchestration**: Historical backfill and ongoing incremental sync (via Gmail's `history.list` API) run asynchronously using Python thread pools without blocking the UI.
-- 🔒 **Bank-Grade Security**:
+- **Bring-Your-Own-Key LLM Engine**: Supports **Google Gemini** natively and **OpenRouter** (accessing 300+ models with curated shortlists and `FREE` tier badges). Users supply their own API keys — the app itself never incurs LLM costs.
+- **Background Sync Orchestration**: Historical backfill and ongoing incremental sync (via Gmail's `history.list` API) run asynchronously using Python thread pools without blocking the UI.
+- **Bank-Grade Security**:
   - Gmail refresh tokens and LLM API keys are encrypted at rest using **Fernet symmetric encryption**.
   - All database access is protected by **Supabase Row Level Security (RLS)** using `auth.uid() = user_id`.
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## Architecture & Tech Stack
 
 ```
                                ┌─────────────────────────┐
@@ -67,7 +67,7 @@ College placement cell emails arrive in inconsistent, unstructured formats. Stud
 
 ---
 
-## 🗄️ Database Schema
+## Database Schema
 
 The Postgres database consists of 4 main tables with complete Row Level Security enabled:
 
@@ -123,7 +123,7 @@ applications (
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - **Python 3.10+** (Python 3.14 recommended)
@@ -161,7 +161,7 @@ cd mail-parser
 4. Create **OAuth 2.0 Client ID credentials** (Web application type).
 5. Add the redirect URI: `http://localhost:5000/auth/gmail/callback`.
 
-> 💡 Need step-by-step help? Check the detailed [SETUP_GUIDE.md](file:///Users/benfranklin/Web%20devolpment/Projects/mail%20parser/SETUP_GUIDE.md).
+> Need step-by-step help? Check the detailed [SETUP_GUIDE.md](file:///Users/benfranklin/Web%20devolpment/Projects/mail%20parser/SETUP_GUIDE.md).
 
 ---
 
@@ -222,7 +222,7 @@ npm run dev
 
 ---
 
-## 📡 API Reference
+## API Reference
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -242,7 +242,7 @@ npm run dev
 
 ---
 
-## 🧪 Testing
+## Testing
 
 Run unit tests for the hybrid extraction pipeline and Fernet encryption module:
 
@@ -257,7 +257,7 @@ python -m pytest tests/ -v
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 mail-parser/
@@ -293,6 +293,6 @@ mail-parser/
 
 ---
 
-## 📄 License
+## License
 
 Private repository — All rights reserved. Built for Placement Mail Tracking.

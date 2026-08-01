@@ -2,48 +2,41 @@
 
 @layer base {
   :root {
-    --background: #F5F6F8;
-    --surface: #FFFFFF;
-    --ink: #16233F;
-    --ink-muted: #5B6577;
-    --accent: #E0A458;
-    --accent-hover: #D49344;
-    --success: #3F6659;
-    --success-bg: #E8F2EE;
-    --border: #D9DEE6;
-    --card-shadow: 0 4px 12px -2px rgba(22, 35, 63, 0.05);
+    /* Claude / Anthropic Brand Palette */
+    --background: #FAF7F2;      /* Warm paper off-white canvas */
+    --surface: #FFFFFF;         /* Crisp white card surface */
+    --surface-muted: #F4F0E8;   /* Soft warm surface background */
+    --ink: #1F1E1B;             /* Deep warm charcoal text */
+    --ink-muted: #6B665F;       /* Muted warm secondary text */
+    --ink-light: #948E85;       /* Subtle tertiary text */
+    --accent: #D97757;          /* Claude signature terracotta / coral */
+    --accent-hover: #C15C3D;    /* Slightly darker terracotta for hover */
+    --accent-light: #FDF2EE;    /* Soft terracotta tint background */
+    --success: #3E6B48;          /* Muted warm forest green */
+    --success-bg: #EEF5F0;       /* Soft green tint */
+    --border: #E8E2D8;          /* Soft warm border */
+    --border-hover: #D4CBBC;    /* Hover border state */
+    --card-shadow: 0 2px 8px -2px rgba(31, 30, 27, 0.04), 0 1px 2px rgba(31, 30, 27, 0.02);
 
-    --font-serif: var(--font-fraunces), serif;
-    --font-sans: var(--font-inter), sans-serif;
+    --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-mono: var(--font-mono), monospace;
-  }
-
-  .dark {
-    --background: #0F1420;
-    --surface: #171E2E;
-    --ink: #EDEFF3;
-    --ink-muted: #9AA4B8;
-    --accent: #E7B276;
-    --accent-hover: #F0BD84;
-    --success: #6FA98C;
-    --success-bg: #1B2B25;
-    --border: #293349;
-    --card-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.3);
   }
 }
 
 @theme {
   --color-bg: var(--background);
   --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
+  --color-ink-light: var(--ink-light);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-light: var(--accent-light);
   --color-success: var(--success);
   --color-success-bg: var(--success-bg);
   --color-border: var(--border);
 
-  --font-serif: var(--font-fraunces), serif;
   --font-sans: var(--font-inter), sans-serif;
   --font-mono: var(--font-mono), monospace;
 }
@@ -52,83 +45,26 @@ body {
   background-color: var(--background);
   color: var(--ink);
   font-family: var(--font-sans);
-  transition: background-color 250ms ease, color 250ms ease;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Signature Boarding Pass Ticket Cutouts & Perforation */
-.ticket-container {
-  position: relative;
+/* Modern Card Container */
+.claude-card {
   background-color: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  overflow: hidden;
-  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+  border-radius: 1rem;
   box-shadow: var(--card-shadow);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
-.ticket-container:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent);
+.claude-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 8px 24px -4px rgba(31, 30, 27, 0.07);
 }
 
-/* Perforated divider line */
-.perforation-line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  border-left: 2px dashed var(--border);
-  pointer-events: none;
-}
-
-/* Circular notch cutouts at top and bottom of perforation */
-.ticket-notch-top {
-  position: absolute;
-  top: -7px;
-  width: 14px;
-  height: 14px;
-  background-color: var(--background);
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  z-index: 10;
-  clip-path: circle(50% at 50% 100%);
-}
-
-.ticket-notch-bottom {
-  position: absolute;
-  bottom: -7px;
-  width: 14px;
-  height: 14px;
-  background-color: var(--background);
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  z-index: 10;
-  clip-path: circle(50% at 50% 0%);
-}
-
-/* Monospace font family utility */
 .font-mono-plex {
   font-family: var(--font-mono);
-}
-
-.font-fraunces-display {
-  font-family: var(--font-serif);
-}
-
-/* Stamp Badge styling */
-.stamp-badge {
-  font-family: var(--font-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 700;
-  padding: 0.25rem 0.6rem;
-  border-radius: 0.25rem;
-  border: 2px solid currentColor;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.7rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

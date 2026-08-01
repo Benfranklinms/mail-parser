@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<"account" | "gmail" | "llm" | "sync">("gmail");
+  const [activeTab, setActiveTab] = useState<"gmail" | "llm" | "account" | "sync">("gmail");
 
   // Gmail State
   const [gmailStatus, setGmailStatus] = useState<GmailConnectionStatus | null>(null);
@@ -58,7 +58,6 @@ export default function SettingsPage() {
         setGmailStatus(gStatus);
         setSavedKeys(keys.data);
 
-        // If OpenRouter key already saved, load OpenRouter models
         const routerKey = keys.data.find((k) => k.provider === "openrouter");
         if (routerKey?.model_id) {
           setSelectedModelId(routerKey.model_id);
@@ -70,7 +69,7 @@ export default function SettingsPage() {
     loadSettings();
   }, []);
 
-  // Fetch OpenRouter Models when switching to openrouter or LLM tab
+  // Fetch OpenRouter Models
   useEffect(() => {
     if (provider === "openrouter" && openRouterModels.curated.length === 0) {
       api.getOpenRouterModels().then((res) => {
@@ -87,12 +86,12 @@ export default function SettingsPage() {
     setConnectingGmail(true);
     try {
       const res = await api.connectGmail({ start_date: syncSinceDate });
-      toast.info("Redirecting to Google OAuth consent...");
+      toast.info("Redirecting to Google OAuth...");
       if (res.auth_url) {
         window.location.href = res.auth_url;
       }
     } catch {
-      toast.error("Failed to start Gmail authentication");
+      toast.error("Failed to start Gmail auth");
     } finally {
       setConnectingGmail(false);
     }
@@ -122,7 +121,6 @@ export default function SettingsPage() {
       toast.success(res.message || "API key saved securely!");
       setApiKey("");
 
-      // Reload keys
       const updatedKeys = await api.getLLMKeys();
       setSavedKeys(updatedKeys.data);
     } catch (err: any) {
@@ -149,7 +147,6 @@ export default function SettingsPage() {
     openrouter: { label: "OpenRouter Keys", url: "https://openrouter.ai/keys" },
   };
 
-  // Filter models for combobox
   const modelsToDisplay = showAllModels ? openRouterModels.all : openRouterModels.curated;
   const filteredModels = modelsToDisplay.filter(
     (m) =>
@@ -158,15 +155,15 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
       
       {/* HEADER */}
-      <div className="pb-4 border-b border-[var(--border)]">
-        <h1 className="font-fraunces-display text-3xl font-bold tracking-tight text-[var(--ink)]">
-          Control Center & Settings
+      <div className="pb-3 border-b border-[var(--border)]">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)]">
+          Settings & Control Panel
         </h1>
-        <p className="text-sm text-[var(--ink-muted)] mt-1">
-          Manage your Gmail connection, encrypted LLM keys, model selection, and sync frequency.
+        <p className="text-xs text-[var(--ink-muted)] mt-1">
+          Manage your Gmail OAuth access, encrypted API keys, model preferences, and sync rules.
         </p>
       </div>
 
@@ -174,7 +171,7 @@ export default function SettingsPage() {
       <div className="flex border-b border-[var(--border)] gap-2 overflow-x-auto">
         {[
           { id: "gmail", label: "Gmail Connection", icon: Mail },
-          { id: "llm", label: "LLM Provider", icon: Key },
+          { id: "llm", label: "LLM Engine & Keys", icon: Key },
           { id: "account", label: "Account", icon: User },
           { id: "sync", label: "Sync Preferences", icon: Sliders },
         ].map((tab) => {
@@ -184,13 +181,13 @@ export default function SettingsPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs font-semibold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-4 py-2.5 border-b-2 text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
-                  ? "border-[var(--accent)] text-[var(--ink)] bg-[var(--surface)]/50 rounded-t-lg"
+                  ? "border-[var(--accent)] text-[var(--ink)] bg-[var(--surface-muted)]/60 rounded-t-lg"
                   : "border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]"
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? "text-[var(--accent)]" : ""}`} />
+              <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[var(--accent)]" : ""}`} />
               <span>{tab.label}</span>
             </button>
           );
@@ -199,77 +196,77 @@ export default function SettingsPage() {
 
       {/* TAB 1: GMAIL CONNECTION */}
       {activeTab === "gmail" && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-sm space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-xs space-y-6">
             
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-[var(--border)] pb-5">
               <div>
-                <h3 className="font-fraunces-display text-lg font-bold text-[var(--ink)]">
-                  Gmail OAuth Access
+                <h3 className="text-base font-bold text-[var(--ink)]">
+                  Gmail Inbox OAuth Access
                 </h3>
                 <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                  Readonly permission to scan your placement-cell email address.
+                  Readonly authorization to scan placement cell emails automatically.
                 </p>
               </div>
 
               {gmailStatus?.connected ? (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-xs font-mono-plex font-bold border border-[var(--success)]/30">
-                  <CheckCircle2 className="w-4 h-4" />
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-xs font-mono-plex font-bold border border-[var(--success)]/30">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>CONNECTED</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 text-xs font-mono-plex font-bold border border-amber-500/30">
-                  <AlertCircle className="w-4 h-4" />
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-mono-plex font-bold border border-amber-500/30">
+                  <AlertCircle className="w-3.5 h-3.5" />
                   <span>NOT CONNECTED</span>
                 </div>
               )}
             </div>
 
             {/* Backfill Window Selection */}
-            <div className="space-y-2">
+            <div className="space-y-2 max-w-sm">
               <label className="text-xs font-semibold text-[var(--ink)] block">
-                Sync Emails Since (Backfill Window)
+                Sync Emails Since (Backfill Date)
               </label>
               <input
                 type="date"
                 value={syncSinceDate}
                 onChange={(e) => setSyncSinceDate(e.target.value)}
-                className="px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-xs font-mono-plex text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-xs font-mono-plex text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
               />
               <p className="text-[11px] text-[var(--ink-muted)]">
-                On initial connect, emails after this date with placement keywords will be scanned.
+                Historical emails from this date matching placement keywords will be scanned.
               </p>
             </div>
 
             {/* Actions */}
-            <div className="flex flex-wrap gap-4 pt-2">
+            <div className="flex flex-wrap gap-3 pt-2">
               <button
                 onClick={handleConnectGmail}
                 disabled={connectingGmail}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--ink)] text-[var(--surface)] text-xs font-semibold hover:bg-[var(--accent)] transition-colors shadow-md disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--ink)] text-white text-xs font-semibold hover:bg-[var(--accent)] transition-colors shadow-xs disabled:opacity-50"
               >
                 <Mail className="w-4 h-4" />
-                <span>{gmailStatus?.connected ? "Reconnect Gmail Account" : "Connect Gmail via Google"}</span>
+                <span>{gmailStatus?.connected ? "Reconnect Gmail Account" : "Connect Gmail Account"}</span>
               </button>
 
               {gmailStatus?.connected && (
                 <button
                   onClick={async () => {
-                    toast.info("Triggering incremental sync...");
+                    toast.info("Incremental sync started...");
                     await api.triggerSync();
-                    toast.success("Sync started!");
+                    toast.success("Sync finished!");
                   }}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-xs font-semibold hover:border-[var(--accent)] transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--surface-muted)] border border-[var(--border)] text-xs font-medium hover:border-[var(--accent)] transition-colors"
                 >
-                  <RefreshCw className="w-4 h-4 text-[var(--accent)]" />
-                  <span>Incremental Sync Now</span>
+                  <RefreshCw className="w-3.5 h-3.5 text-[var(--accent)]" />
+                  <span>Run Manual Sync</span>
                 </button>
               )}
             </div>
 
             {gmailStatus?.last_synced_at && (
-              <p className="text-[11px] font-mono-plex text-[var(--ink-muted)] pt-2 border-t border-[var(--border)]">
-                Last synced: {new Date(gmailStatus.last_synced_at).toLocaleString()}
+              <p className="text-[11px] font-mono-plex text-[var(--ink-muted)] pt-3 border-t border-[var(--border)]">
+                Last synced timestamp: {new Date(gmailStatus.last_synced_at).toLocaleString()}
               </p>
             )}
 
@@ -279,15 +276,15 @@ export default function SettingsPage() {
 
       {/* TAB 2: LLM PROVIDER & MODEL SELECTION */}
       {activeTab === "llm" && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-sm space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-xs space-y-6">
             
             <div>
-              <h3 className="font-fraunces-display text-lg font-bold text-[var(--ink)]">
-                Bring-Your-Own-Key LLM Engine
+              <h3 className="text-base font-bold text-[var(--ink)]">
+                LLM Extraction Engine & Keys
               </h3>
               <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                API keys are stored using Fernet symmetric encryption and never returned in plaintext.
+                Supply your own API key. Keys are encrypted at rest with Fernet symmetric encryption.
               </p>
             </div>
 
@@ -302,7 +299,7 @@ export default function SettingsPage() {
                   {[
                     { id: "gemini", label: "Google Gemini", badge: "Native JSON" },
                     { id: "openrouter", label: "OpenRouter", badge: "300+ Models" },
-                    { id: "groq", label: "Groq (Coming Soon)", badge: "Fast" },
+                    { id: "groq", label: "Groq", badge: "Fast" },
                   ].map((p) => (
                     <button
                       key={p.id}
@@ -310,7 +307,7 @@ export default function SettingsPage() {
                       onClick={() => setProvider(p.id as any)}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         provider === p.id
-                          ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--ink)]"
+                          ? "border-[var(--accent)] bg-[var(--accent-light)] text-[var(--ink)]"
                           : "border-[var(--border)] bg-[var(--background)] text-[var(--ink-muted)]"
                       }`}
                     >
@@ -337,7 +334,7 @@ export default function SettingsPage() {
                     rel="noopener noreferrer"
                     className="text-[11px] text-[var(--accent)] hover:underline flex items-center gap-1"
                   >
-                    <span>Get free key at {providerHelpLinks[provider].label}</span>
+                    <span>Get key at {providerHelpLinks[provider].label}</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
@@ -346,13 +343,13 @@ export default function SettingsPage() {
                   placeholder={`Enter your ${provider} API key...`}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[var(--background)] border border-[var(--border)] rounded-xl text-xs font-mono-plex text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  className="w-full px-3.5 py-2.5 bg-[var(--background)] border border-[var(--border)] rounded-xl text-xs font-mono-plex text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
                 />
               </div>
 
               {/* MODEL SELECTION COMBOBOX (OPENROUTER ONLY) */}
               {provider === "openrouter" && (
-                <div className="space-y-2 pt-2 border-t border-[var(--border)] animate-in fade-in duration-150">
+                <div className="space-y-2 pt-3 border-t border-[var(--border)] animate-in fade-in duration-150">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-[var(--ink)] flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-[var(--accent)]" />
@@ -364,7 +361,7 @@ export default function SettingsPage() {
                       onClick={() => setShowAllModels(!showAllModels)}
                       className="text-[11px] font-mono-plex text-[var(--accent)] hover:underline"
                     >
-                      {showAllModels ? "Show Curated (Shortlist)" : "Show All Models (Catalog)"}
+                      {showAllModels ? "Show Curated Shortlist" : "Show Full Model Catalog"}
                     </button>
                   </div>
 
@@ -373,19 +370,19 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 bg-[var(--background)] border border-[var(--border)] rounded-xl text-xs font-mono-plex text-[var(--ink)] hover:border-[var(--accent)] transition-all"
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 bg-[var(--background)] border border-[var(--border)] rounded-xl text-xs font-mono-plex text-[var(--ink)] hover:border-[var(--accent)] transition-all"
                     >
                       <span className="truncate font-semibold">{selectedModelId}</span>
                       <ChevronDown className="w-4 h-4 text-[var(--ink-muted)] shrink-0 ml-2" />
                     </button>
 
                     {modelDropdownOpen && (
-                      <div className="absolute left-0 right-0 mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl p-3 z-50 space-y-2 max-h-64 overflow-y-auto">
+                      <div className="absolute left-0 right-0 mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-lg p-3 z-50 space-y-2 max-h-64 overflow-y-auto">
                         <div className="relative">
                           <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
                           <input
                             type="text"
-                            placeholder="Filter model name or ID..."
+                            placeholder="Filter model..."
                             value={modelSearch}
                             onChange={(e) => setModelSearch(e.target.value)}
                             className="w-full pl-8 pr-3 py-1.5 bg-[var(--background)] border border-[var(--border)] rounded-lg text-xs font-mono-plex text-[var(--ink)] focus:outline-none"
@@ -401,9 +398,9 @@ export default function SettingsPage() {
                                 setSelectedModelId(m.id);
                                 setModelDropdownOpen(false);
                               }}
-                              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-mono-plex text-left transition-colors ${
+                              className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-mono-plex text-left transition-colors ${
                                 selectedModelId === m.id
-                                  ? "bg-[var(--accent)]/15 text-[var(--ink)] font-bold"
+                                  ? "bg-[var(--accent-light)] text-[var(--ink)] font-bold"
                                   : "hover:bg-[var(--background)] text-[var(--ink-muted)]"
                               }`}
                             >
@@ -412,7 +409,7 @@ export default function SettingsPage() {
                                 <span className="block text-[9px] text-[var(--ink-muted)] truncate">{m.id}</span>
                               </div>
                               {m.is_free && (
-                                <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-[var(--accent)] text-[var(--ink)] shrink-0">
+                                <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-[var(--accent)] text-white shrink-0">
                                   FREE
                                 </span>
                               )}
@@ -423,7 +420,7 @@ export default function SettingsPage() {
                     )}
                   </div>
                   <p className="text-[11px] text-[var(--ink-muted)]">
-                    Free models are tagged with the amber badge.
+                    Models with zero prompt/completion pricing are tagged with FREE.
                   </p>
                 </div>
               )}
@@ -431,16 +428,16 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={savingKey}
-                className="px-5 py-2.5 rounded-xl bg-[var(--ink)] text-[var(--surface)] text-xs font-semibold hover:bg-[var(--accent)] transition-colors shadow-md disabled:opacity-50"
+                className="px-4 py-2.5 rounded-xl bg-[var(--ink)] text-white text-xs font-semibold hover:bg-[var(--accent)] transition-colors shadow-xs disabled:opacity-50"
               >
-                {savingKey ? "Encrypting & Saving..." : "Save Encrypted Key"}
+                {savingKey ? "Encrypting & Saving..." : "Save Key"}
               </button>
             </form>
 
             {/* LIST STORED KEYS */}
             <div className="pt-4 border-t border-[var(--border)] space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider font-mono-plex text-[var(--ink-muted)]">
-                Configured Keys
+                Configured API Keys
               </h4>
 
               {savedKeys.length > 0 ? (
@@ -461,7 +458,7 @@ export default function SettingsPage() {
                       </div>
                       <button
                         onClick={() => handleDeleteKey(k.provider)}
-                        className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                         title="Remove key"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -480,36 +477,36 @@ export default function SettingsPage() {
 
       {/* TAB 3: ACCOUNT */}
       {activeTab === "account" && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-sm space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-xs space-y-6">
             <div>
-              <h3 className="font-fraunces-display text-lg font-bold text-[var(--ink)]">
+              <h3 className="text-base font-bold text-[var(--ink)]">
                 Account Information
               </h3>
               <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                Manage your authenticated identity and account options.
+                Manage your profile and account credentials.
               </p>
             </div>
 
             <div className="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] space-y-2 text-xs">
               <div>
-                <span className="text-[var(--ink-muted)] block text-[10px] font-mono-plex uppercase">Signed in as:</span>
+                <span className="text-[var(--ink-muted)] block text-[10px] font-mono-plex uppercase">Email:</span>
                 <span className="font-semibold text-[var(--ink)]">student@college.edu</span>
               </div>
               <div>
-                <span className="text-[var(--ink-muted)] block text-[10px] font-mono-plex uppercase">Auth Provider:</span>
+                <span className="text-[var(--ink-muted)] block text-[10px] font-mono-plex uppercase">Authentication:</span>
                 <span className="font-semibold text-[var(--ink)]">Supabase Auth (JWT)</span>
               </div>
             </div>
 
             {/* DANGER ZONE */}
             <div className="pt-4 border-t border-[var(--border)] space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider font-mono-plex text-red-600 dark:text-red-400">
+              <h4 className="text-xs font-bold uppercase tracking-wider font-mono-plex text-red-600">
                 Danger Zone
               </h4>
               <button
                 onClick={() => setShowDeleteModal(true)}
-                className="px-4 py-2 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-red-500/20 text-xs font-semibold transition-colors flex items-center gap-2"
+                className="px-4 py-2 rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 text-xs font-semibold transition-colors flex items-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
                 <span>Delete Account & Stored Data</span>
@@ -521,14 +518,14 @@ export default function SettingsPage() {
 
       {/* TAB 4: SYNC PREFERENCES */}
       {activeTab === "sync" && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-sm space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] shadow-xs space-y-6">
             <div>
-              <h3 className="font-fraunces-display text-lg font-bold text-[var(--ink)]">
-                Sync & Filter Preferences
+              <h3 className="text-base font-bold text-[var(--ink)]">
+                Sync & Pre-filter Preferences
               </h3>
               <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                Customize sender filters and keyword matching heuristics.
+                Fine-tune keyword matching rules to reduce unnecessary LLM API calls.
               </p>
             </div>
 
@@ -540,7 +537,7 @@ export default function SettingsPage() {
                 <input
                   type="email"
                   placeholder="placement@college.edu (Optional)"
-                  className="w-full px-4 py-2 bg-[var(--background)] border border-[var(--border)] rounded-xl text-xs text-[var(--ink)]"
+                  className="w-full px-3.5 py-2 bg-[var(--background)] border border-[var(--border)] rounded-xl text-xs text-[var(--ink)]"
                 />
               </div>
 
@@ -551,13 +548,13 @@ export default function SettingsPage() {
                 <input
                   type="text"
                   defaultValue="placement, internship, hiring, recruitment, campus drive, CTC"
-                  className="w-full px-4 py-2 bg-[var(--background)] border border-[var(--border)] rounded-xl text-xs text-[var(--ink)]"
+                  className="w-full px-3.5 py-2 bg-[var(--background)] border border-[var(--border)] rounded-xl text-xs text-[var(--ink)]"
                 />
               </div>
 
               <button
                 onClick={() => toast.success("Sync preferences updated!")}
-                className="px-4 py-2 rounded-xl bg-[var(--ink)] text-[var(--surface)] font-semibold hover:bg-[var(--accent)] transition-colors"
+                className="px-4 py-2 rounded-xl bg-[var(--ink)] text-white font-semibold hover:bg-[var(--accent)] transition-colors"
               >
                 Save Preferences
               </button>
@@ -568,13 +565,13 @@ export default function SettingsPage() {
 
       {/* DELETE ACCOUNT DIALOG */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
-            <h3 className="font-fraunces-display text-xl font-bold text-red-600 dark:text-red-400">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl">
+            <h3 className="text-lg font-bold text-red-600">
               Delete Account?
             </h3>
             <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
-              This action will permanently delete your account, saved LLM keys, Gmail OAuth refresh tokens, and all tracked opportunities.
+              This action will permanently delete your account, encrypted LLM keys, Gmail OAuth tokens, and all tracked placement opportunities.
             </p>
             <div className="flex justify-end gap-3 pt-2">
               <button

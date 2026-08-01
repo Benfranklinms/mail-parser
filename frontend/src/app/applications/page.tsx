@@ -18,7 +18,6 @@ export default function ApplicationsPage() {
       try {
         setLoading(true);
         const res = await api.getOpportunities();
-        // Filter out "not_applied"
         setOpportunities(res.data.filter((o) => o.application_status !== "not_applied"));
       } catch {
         toast.error("Failed to load applications");
@@ -54,20 +53,20 @@ export default function ApplicationsPage() {
       {/* PAGE HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div>
-          <h1 className="font-fraunces-display text-3xl font-bold tracking-tight text-[var(--ink)]">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)]">
             Application Tracker
           </h1>
-          <p className="text-sm text-[var(--ink-muted)] mt-1">
-            Track and manage your submitted placement drives and result announcements.
+          <p className="text-xs text-[var(--ink-muted)] mt-1">
+            Track your submitted applications and result declarations.
           </p>
         </div>
 
-        <div className="flex items-center gap-4 text-xs font-mono-plex font-semibold">
-          <span className="px-3 py-1.5 rounded-lg bg-[var(--success-bg)] text-[var(--success)] border border-[var(--success)]/30">
+        <div className="flex items-center gap-3 text-xs font-mono-plex font-medium">
+          <span className="px-3 py-1 rounded-lg bg-[var(--success-bg)] text-[var(--success)] border border-[var(--success)]/20">
             {appliedOpps.length} APPLIED
           </span>
-          <span className="px-3 py-1.5 rounded-lg bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30">
-            {resultOpps.length} RESULTS OUT
+          <span className="px-3 py-1 rounded-lg bg-[var(--accent-light)] text-[var(--accent)] border border-[var(--accent)]/20">
+            {resultOpps.length} RESULTS
           </span>
         </div>
       </div>
@@ -78,12 +77,12 @@ export default function ApplicationsPage() {
           <OpportunitySkeleton />
         </div>
       ) : opportunities.length === 0 ? (
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-12 text-center max-w-md mx-auto my-12 space-y-4">
-          <div className="w-14 h-14 rounded-full bg-[var(--success-bg)] text-[var(--success)] flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-7 h-7" />
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-10 text-center max-w-md mx-auto my-12 space-y-4 shadow-xs">
+          <div className="w-12 h-12 rounded-full bg-[var(--success-bg)] text-[var(--success)] flex items-center justify-center mx-auto">
+            <CheckCircle2 className="w-6 h-6" />
           </div>
-          <h2 className="font-fraunces-display text-2xl font-bold text-[var(--ink)]">
-            No Tracked Applications Yet
+          <h2 className="text-xl font-bold text-[var(--ink)]">
+            No Active Applications Yet
           </h2>
           <p className="text-xs text-[var(--ink-muted)]">
             Click the stamp badge on any opportunity card on your Dashboard to mark it as Applied.
@@ -91,9 +90,9 @@ export default function ApplicationsPage() {
           <div className="pt-2">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--ink)] text-[var(--surface)] text-xs font-semibold hover:bg-[var(--accent)] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--ink)] text-white text-xs font-semibold hover:bg-[var(--accent)] transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Dashboard</span>
             </Link>
           </div>
@@ -103,7 +102,7 @@ export default function ApplicationsPage() {
           
           {/* SECTION 1: APPLIED */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-bold font-fraunces-display text-[var(--ink)]">
+            <div className="flex items-center gap-2 text-sm font-bold text-[var(--ink)]">
               <CheckCircle2 className="w-4 h-4 text-[var(--success)]" />
               <span>Applied Opportunities ({appliedOpps.length})</span>
             </div>
@@ -123,9 +122,9 @@ export default function ApplicationsPage() {
 
           {/* SECTION 2: RESULT OUT */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-bold font-fraunces-display text-[var(--ink)]">
+            <div className="flex items-center gap-2 text-sm font-bold text-[var(--ink)]">
               <Award className="w-4 h-4 text-[var(--accent)]" />
-              <span>Results & Decision Updates ({resultOpps.length})</span>
+              <span>Results & Status Updates ({resultOpps.length})</span>
             </div>
 
             {resultOpps.length > 0 ? (

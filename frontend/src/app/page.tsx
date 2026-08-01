@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import { OpportunityCard } from "@/components/OpportunityCard";
 import { OpportunitySkeleton } from "@/components/OpportunitySkeleton";
 import { toast } from "sonner";
-import { Search, RefreshCw, Filter, Sparkles, Mail, CheckCircle2, ArrowRight } from "lucide-react";
+import { Search, RefreshCw, Sparkles, Mail, ArrowRight, Briefcase } from "lucide-react";
 import Link from "next/link";
 
 export default function Dashboard() {
@@ -69,7 +69,7 @@ export default function Dashboard() {
     );
 
     const statusLabels: Record<ApplicationStatus, string> = {
-      applied: "Marked as Applied! 🚀",
+      applied: "Marked as Applied 🚀",
       result_out: "Moved to Result Out 🏆",
       not_applied: "Reset to Not Applied ⏱️",
     };
@@ -80,12 +80,16 @@ export default function Dashboard() {
       await api.updateOpportunityStatus(id, newStatus);
     } catch {
       toast.error("Failed to update status on server");
-      // Revert on error
       setOpportunities((prev) =>
         prev.map((o) => (o.id === id ? { ...o, application_status: prevOpp.application_status } : o))
       );
     }
   };
+
+  // Quick stats calculation
+  const totalCount = opportunities.length;
+  const appliedCount = opportunities.filter((o) => o.application_status === "applied").length;
+  const resultCount = opportunities.filter((o) => o.application_status === "result_out").length;
 
   return (
     <div className="space-y-6">
@@ -93,37 +97,49 @@ export default function Dashboard() {
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[var(--border)]">
         <div>
-          <h1 className="font-fraunces-display text-3xl font-bold tracking-tight text-[var(--ink)]">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)]">
             Placement Dashboard
           </h1>
-          <p className="text-sm text-[var(--ink-muted)] mt-1">
-            Turn unstructured placement emails into trackable boarding pass tickets.
+          <p className="text-xs text-[var(--ink-muted)] mt-1">
+            Turn unstructured placement cell emails into structured, trackable opportunity cards.
           </p>
         </div>
 
-        {/* Sync Now Button */}
+        {/* Sync Now Button & Quick Stats */}
         <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2 text-xs font-mono-plex font-medium text-[var(--ink-muted)] mr-2">
+            <span className="px-2.5 py-1 rounded-md bg-[var(--surface-muted)] border border-[var(--border)]">
+              {totalCount} Total
+            </span>
+            <span className="px-2.5 py-1 rounded-md bg-[var(--success-bg)] text-[var(--success)] border border-[var(--success)]/20">
+              {appliedCount} Applied
+            </span>
+            <span className="px-2.5 py-1 rounded-md bg-[var(--accent-light)] text-[var(--accent)] border border-[var(--accent)]/20">
+              {resultCount} Results
+            </span>
+          </div>
+
           <button
             onClick={handleTriggerSync}
             disabled={isSyncing}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] text-xs font-semibold text-[var(--ink)] shadow-sm hover:shadow transition-all disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] text-xs font-medium text-[var(--ink)] shadow-xs transition-all disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-[var(--accent)] ${isSyncing ? "animate-spin" : ""}`} />
-            <span>{isSyncing ? "Syncing Inbox..." : "Sync Mail Now"}</span>
+            <span>{isSyncing ? "Syncing..." : "Sync Mail"}</span>
           </button>
         </div>
       </div>
 
-      {/* SYNC PROGRESS BAR (IF SYNC ACTIVE) */}
+      {/* SYNC PROGRESS BAR (IF ACTIVE) */}
       {syncStatus && syncStatus.status === "processing" && (
-        <div className="p-4 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div className="p-4 rounded-xl bg-[var(--accent-light)] border border-[var(--accent)]/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-[var(--accent)] animate-pulse" />
             <span className="font-semibold text-[var(--ink)]">
-              Email extraction in progress... ({syncStatus.processed || 0} / {syncStatus.total || 0} emails)
+              Scanning placement inbox... ({syncStatus.processed || 0} / {syncStatus.total || 0} emails)
             </span>
           </div>
-          <div className="w-full sm:w-48 bg-[var(--background)] rounded-full h-2 overflow-hidden border border-[var(--border)]">
+          <div className="w-full sm:w-48 bg-white rounded-full h-2 overflow-hidden border border-[var(--border)]">
             <div
               className="bg-[var(--accent)] h-full transition-all duration-300"
               style={{
@@ -137,18 +153,18 @@ export default function Dashboard() {
       )}
 
       {/* FILTER BAR */}
-      <div className="bg-[var(--surface)] p-4 rounded-xl border border-[var(--border)] shadow-sm space-y-3">
+      <div className="bg-[var(--surface)] p-4 rounded-xl border border-[var(--border)] shadow-xs space-y-3">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
           {/* Search Input */}
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
             <input
               type="text"
-              placeholder="Search by company or role..."
+              placeholder="Search company or role..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-xs text-[var(--ink)] placeholder-[var(--ink-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
+              className="w-full pl-9 pr-4 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-xs text-[var(--ink)] placeholder-[var(--ink-light)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all"
             />
           </div>
 
@@ -156,8 +172,8 @@ export default function Dashboard() {
           <div className="flex flex-wrap items-center gap-3">
             
             {/* Role Filter */}
-            <div className="flex items-center gap-1.5 bg-[var(--background)] p-1 rounded-lg border border-[var(--border)] text-xs">
-              <span className="px-2 text-[11px] font-mono-plex text-[var(--ink-muted)] uppercase">Role:</span>
+            <div className="flex items-center gap-1 bg-[var(--surface-muted)] p-1 rounded-lg border border-[var(--border)] text-xs">
+              <span className="px-2 text-[10px] font-mono-plex text-[var(--ink-muted)] uppercase font-semibold">Role:</span>
               {[
                 { label: "All", value: "all" },
                 { label: "Internship", value: "internship" },
@@ -167,9 +183,9 @@ export default function Dashboard() {
                 <button
                   key={item.value}
                   onClick={() => setRoleType(item.value)}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
                     roleType === item.value
-                      ? "bg-[var(--surface)] text-[var(--ink)] font-semibold shadow-sm border border-[var(--border)]"
+                      ? "bg-[var(--surface)] text-[var(--ink)] font-semibold shadow-xs"
                       : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   }`}
                 >
@@ -179,8 +195,8 @@ export default function Dashboard() {
             </div>
 
             {/* Status Filter */}
-            <div className="flex items-center gap-1.5 bg-[var(--background)] p-1 rounded-lg border border-[var(--border)] text-xs">
-              <span className="px-2 text-[11px] font-mono-plex text-[var(--ink-muted)] uppercase">Status:</span>
+            <div className="flex items-center gap-1 bg-[var(--surface-muted)] p-1 rounded-lg border border-[var(--border)] text-xs">
+              <span className="px-2 text-[10px] font-mono-plex text-[var(--ink-muted)] uppercase font-semibold">Status:</span>
               {[
                 { label: "All", value: "all" },
                 { label: "Not Applied", value: "not_applied" },
@@ -190,9 +206,9 @@ export default function Dashboard() {
                 <button
                   key={item.value}
                   onClick={() => setStatus(item.value)}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
                     status === item.value
-                      ? "bg-[var(--surface)] text-[var(--ink)] font-semibold shadow-sm border border-[var(--border)]"
+                      ? "bg-[var(--surface)] text-[var(--ink)] font-semibold shadow-xs"
                       : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   }`}
                 >
@@ -242,25 +258,25 @@ export default function Dashboard() {
         </motion.div>
       ) : (
         /* EMPTY STATE */
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-12 text-center max-w-lg mx-auto my-8 space-y-4 shadow-sm">
-          <div className="w-16 h-16 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30 flex items-center justify-center mx-auto">
-            <Mail className="w-8 h-8" />
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-10 text-center max-w-md mx-auto my-8 space-y-4 shadow-xs">
+          <div className="w-12 h-12 rounded-full bg-[var(--accent-light)] text-[var(--accent)] flex items-center justify-center mx-auto">
+            <Briefcase className="w-6 h-6" />
           </div>
-          <h2 className="font-fraunces-display text-2xl font-bold text-[var(--ink)]">
-            No Placement Opportunities Found
+          <h2 className="text-xl font-bold text-[var(--ink)]">
+            No Opportunities Found
           </h2>
           <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
             {search || roleType !== "all" || status !== "all"
-              ? "No opportunities match your current search and filter selections. Try clearing your filters."
-              : "Connect your placement cell Gmail account to automatically extract job drives and deadlines into your personal ticket stub board."}
+              ? "No opportunities match your current filter criteria. Try resetting search filters."
+              : "Connect your college placement Gmail account to extract placement drives, packages, and deadlines automatically."}
           </p>
           <div className="pt-2">
             <Link
               href="/settings"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--ink)] text-[var(--surface)] hover:bg-[var(--accent)] transition-colors text-xs font-semibold shadow-md"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--ink)] text-white hover:bg-[var(--accent)] transition-colors text-xs font-semibold shadow-xs"
             >
               <span>Connect Gmail Account</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>

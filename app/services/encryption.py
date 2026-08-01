@@ -80,7 +80,7 @@ def mask_key(api_key: str) -> str:
     Returns:
         Masked string like '****abcd'.
     """
-    if len(api_key) <= 4:
+    if len(api_key) < 4:
         return "****"
     return "****" + api_key[-4:]
 

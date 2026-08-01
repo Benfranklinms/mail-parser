@@ -144,19 +144,19 @@ _SALARY_PATTERNS = [
 # --- Date patterns ---
 
 _DATE_CONTEXT_PATTERNS = [
-    # "Last date: 25/12/2025", "Deadline: 25-12-2025"
+    # "Last date: 25/12/2025", "Deadline: 25-12-2025", "Last date to register: 25/12/2025"
     re.compile(
-        r"(?:last\s*date|deadline|register\s*(?:by|before)|apply\s*(?:by|before)|last\s*day)[\s:]*(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})",
+        r"(?:last\s*date|deadline|register\s*(?:by|before)|apply\s*(?:by|before)|last\s*day)(?:\s+\w+){0,5}?[\s:]+(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})",
         re.IGNORECASE,
     ),
     # "Last date: 25 December 2025", "Deadline: Dec 25, 2025"
     re.compile(
-        r"(?:last\s*date|deadline|register\s*(?:by|before)|apply\s*(?:by|before)|last\s*day)[\s:]*(\d{1,2}\s*(?:st|nd|rd|th)?\s*(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s*(?:,?\s*\d{2,4})?)",
+        r"(?:last\s*date|deadline|register\s*(?:by|before)|apply\s*(?:by|before)|last\s*day)(?:\s+\w+){0,5}?[\s:]+(\d{1,2}\s*(?:st|nd|rd|th)?\s*(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s*(?:,?\s*\d{2,4})?)",
         re.IGNORECASE,
     ),
     # "December 25, 2025" or "25 December 2025" with context keyword nearby
     re.compile(
-        r"(?:last\s*date|deadline|register\s*(?:by|before)|apply\s*(?:by|before)|last\s*day)[\s:]*(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s*\d{1,2}\s*(?:st|nd|rd|th)?\s*,?\s*\d{2,4})",
+        r"(?:last\s*date|deadline|register\s*(?:by|before)|apply\s*(?:by|before)|last\s*day)(?:\s+\w+){0,5}?[\s:]+(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s*\d{1,2}\s*(?:st|nd|rd|th)?\s*,?\s*\d{2,4})",
         re.IGNORECASE,
     ),
 ]

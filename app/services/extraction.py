@@ -394,6 +394,7 @@ def run_extraction_pipeline(
     sender: str,
     api_key: Optional[str] = None,
     provider: str = "gemini",
+    model_id: Optional[str] = None,
 ) -> Optional[dict]:
     """Run the full extraction pipeline on a single email.
 
@@ -403,6 +404,7 @@ def run_extraction_pipeline(
         sender: The sender address.
         api_key: Decrypted LLM API key (None to skip LLM stage).
         provider: LLM provider to use.
+        model_id: Optional specific model ID for the LLM.
 
     Returns:
         Extracted opportunity dict, or None if the email was filtered out.
@@ -430,7 +432,7 @@ def run_extraction_pipeline(
         if needs_llm:
             logger.debug("Running LLM extraction for remaining fields")
             llm_result = extract_with_llm(
-                email_body, api_key, provider, subject
+                email_body, api_key, provider, subject, model_id
             )
     else:
         logger.debug("No LLM API key — skipping LLM extraction")

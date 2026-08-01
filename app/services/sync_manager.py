@@ -293,7 +293,7 @@ def _do_backfill(
         return
 
     # 4. Get user's LLM key (if available)
-    api_key, provider = _get_user_llm_key(supabase, user_id)
+    api_key, provider, model_id = _get_user_llm_key(supabase, user_id)
 
     # 5. Process each message
     for i, msg_ref in enumerate(messages):
@@ -306,6 +306,7 @@ def _do_backfill(
                 sender=msg["sender_email"],
                 api_key=api_key,
                 provider=provider,
+                model_id=model_id,
             )
 
             if result is None:
@@ -432,7 +433,7 @@ def _do_incremental(job_id: str, user_id: str):
         return
 
     # 3. Get user's LLM key
-    api_key, provider = _get_user_llm_key(supabase, user_id)
+    api_key, provider, model_id = _get_user_llm_key(supabase, user_id)
 
     # 4. Process each new message
     for i, msg_id in enumerate(new_message_ids):
@@ -445,6 +446,7 @@ def _do_incremental(job_id: str, user_id: str):
                 sender=msg["sender_email"],
                 api_key=api_key,
                 provider=provider,
+                model_id=model_id,
             )
 
             if result is None:
@@ -492,11 +494,11 @@ def _get_user_llm_key(supabase, user_id: str) -> tuple:
     """Fetch and decrypt the user's LLM API key.
 
     Returns:
-        Tuple of (decrypted_api_key, provider). Both are None if no key found.
+        Tuple of (decrypted_api_key, provider, model_id). Elements are None if not found.
     """
     key_result = (
         supabase.table("llm_keys")
-        .select("encrypted_api_key, provider")
+        .select("encrypted_api_key, provider, model_id")
         .eq("user_id", user_id)
         .limit(1)
         .execute()
@@ -506,11 +508,11 @@ def _get_user_llm_key(supabase, user_id: str) -> tuple:
         key_data = key_result.data[0]
         try:
             api_key = decrypt(key_data["encrypted_api_key"])
-            return api_key, key_data["provider"]
+            return api_key, key_data["provider"], key_data.get("model_id")
         except Exception as e:
             logger.error(f"Failed to decrypt LLM key for user {user_id}: {e}")
 
-    return None, "gemini"
+    return None, "gemini", None
 
 
 def _upsert_opportunity(supabase, user_id: str, message_id: str, result: dict):

@@ -12,6 +12,7 @@ SECURITY: API keys are decrypted in memory only, never logged.
 import json
 import logging
 from typing import Optional
+import requests
 
 from google import genai
 from google.genai import types
@@ -67,6 +68,7 @@ def extract_with_llm(
     api_key: str,
     provider: str = "gemini",
     subject: str = "",
+    model_id: Optional[str] = None,
 ) -> dict:
     """Extract structured placement data from an email using an LLM.
 
@@ -75,6 +77,7 @@ def extract_with_llm(
         api_key: The user's decrypted API key for the provider.
         provider: LLM provider name ('gemini', 'groq', 'openrouter').
         subject: Optional email subject for additional context.
+        model_id: Optional specific model ID (primarily for OpenRouter).
 
     Returns:
         Dict with extracted fields matching EXTRACTION_SCHEMA.
@@ -87,7 +90,7 @@ def extract_with_llm(
         return EMPTY_RESULT.copy()
 
     try:
-        result = provider_fn(email_body, api_key, subject)
+        result = provider_fn(email_body, api_key, subject, model_id)
         return _validate_result(result)
     except Exception as e:
         logger.error(f"LLM extraction failed ({provider}): {type(e).__name__}: {e}")
@@ -132,7 +135,7 @@ def _validate_result(result: dict) -> dict:
 # =============================================================================
 
 
-def _gemini_extract(email_body: str, api_key: str, subject: str = "") -> dict:
+def _gemini_extract(email_body: str, api_key: str, subject: str = "", model_id: Optional[str] = None) -> dict:
     """Extract placement data using Google Gemini.
 
     Uses structured JSON output mode for reliable parsing.
@@ -173,7 +176,7 @@ def _gemini_extract(email_body: str, api_key: str, subject: str = "") -> dict:
     return EMPTY_RESULT.copy()
 
 
-def _groq_extract(email_body: str, api_key: str, subject: str = "") -> dict:
+def _groq_extract(email_body: str, api_key: str, subject: str = "", model_id: Optional[str] = None) -> dict:
     """Placeholder for Groq provider — to be implemented.
 
     Will use the Groq API with JSON mode when added.
@@ -181,12 +184,67 @@ def _groq_extract(email_body: str, api_key: str, subject: str = "") -> dict:
     raise NotImplementedError("Groq provider not yet implemented. Use 'gemini' for now.")
 
 
-def _openrouter_extract(email_body: str, api_key: str, subject: str = "") -> dict:
-    """Placeholder for OpenRouter provider — to be implemented.
+def _openrouter_extract(email_body: str, api_key: str, subject: str = "", model_id: Optional[str] = None) -> dict:
+    """Extract placement data using OpenRouter."""
+    if not model_id:
+        model_id = "google/gemini-2.5-flash"
 
-    Will use the OpenRouter API when added.
-    """
-    raise NotImplementedError("OpenRouter provider not yet implemented. Use 'gemini' for now.")
+    prompt = f"Subject: {subject}\n\nEmail Body:\n{email_body}" if subject else email_body
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost:5000",
+        "X-Title": "Placement Mail Tracker"
+    }
+
+    payload = {
+        "model": model_id,
+        "messages": [
+            {
+                "role": "system",
+                "content": EXTRACTION_SYSTEM_PROMPT
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "response_format": {
+            "type": "json_object"
+        },
+        "temperature": 0.1
+    }
+
+    for attempt in range(2):
+        try:
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+            response.raise_for_status()
+            data = response.json()
+            choices = data.get("choices", [])
+            if not choices:
+                logger.warning(f"OpenRouter returned no choices (attempt {attempt + 1})")
+                continue
+            content = choices[0].get("message", {}).get("content", "")
+            if not content:
+                logger.warning(f"OpenRouter returned empty content (attempt {attempt + 1})")
+                continue
+            return json.loads(content)
+        except json.JSONDecodeError:
+            logger.warning(f"OpenRouter returned invalid JSON (attempt {attempt + 1})")
+            continue
+        except Exception as e:
+            logger.error(f"OpenRouter API call failed (attempt {attempt + 1}): {e}")
+            if attempt == 0:
+                continue
+            raise
+
+    return EMPTY_RESULT.copy()
 
 
 # Provider dispatch map — add new providers here
@@ -199,4 +257,4 @@ _PROVIDERS = {
 
 def get_supported_providers() -> list:
     """Return list of currently supported (implemented) provider names."""
-    return ["gemini"]  # Update as providers are implemented
+    return ["gemini", "openrouter"]  # Update as providers are implemented

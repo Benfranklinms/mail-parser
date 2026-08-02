@@ -3,9 +3,11 @@ JWT authentication middleware for Flask.
 
 Verifies Supabase JWTs from the Authorization header and attaches
 user context (user_id, access_token) to Flask's request globals.
+Supports both legacy HS256 shared secrets and new ES256/RS256 JWKS keys.
 """
 
 import os
+import json
 import logging
 from functools import wraps
 
@@ -15,11 +17,25 @@ from flask import request, jsonify, g
 logger = logging.getLogger(__name__)
 
 
+def _get_verification_key(secret_str: str):
+    """Parse secret_str as a raw secret, JWK dict, or JWKS dict."""
+    secret_str = secret_str.strip()
+    if secret_str.startswith("{"):
+        try:
+            data = json.loads(secret_str)
+            if "keys" in data and isinstance(data["keys"], list) and len(data["keys"]) > 0:
+                return jwt.PyJWK.from_dict(data["keys"][0]).key
+            return jwt.PyJWK.from_dict(data).key
+        except Exception as e:
+            logger.warning(f"Failed to parse JWK/JWKS secret: {e}")
+    return secret_str
+
+
 def require_auth(f):
     """Decorator that enforces JWT authentication on a Flask route.
 
     Extracts the Bearer token from the Authorization header, verifies it
-    against the Supabase JWT secret, and sets:
+    against the Supabase JWT secret/key, and sets:
         - g.user_id: The authenticated user's UUID
         - g.access_token: The raw JWT for use with Supabase client
 
@@ -38,15 +54,17 @@ def require_auth(f):
         if not token:
             return jsonify({"error": "Empty bearer token."}), 401
 
-        jwt_secret = os.environ.get("SUPABASE_JWT_SECRET")
-        if not jwt_secret:
+        raw_jwt_secret = os.environ.get("SUPABASE_JWT_SECRET", "")
+        if not raw_jwt_secret:
             logger.error("SUPABASE_JWT_SECRET is not configured.")
             return jsonify({"error": "Server authentication misconfigured."}), 500
+
+        verification_key = _get_verification_key(raw_jwt_secret)
 
         try:
             payload = jwt.decode(
                 token,
-                jwt_secret,
+                verification_key,
                 algorithms=["HS256", "ES256", "RS256"],
                 audience="authenticated",
             )

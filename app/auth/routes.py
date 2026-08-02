@@ -6,6 +6,7 @@ Handles the OAuth flow for connecting a user's Gmail account:
 - GET /auth/gmail/callback — handles the OAuth callback
 """
 
+import os
 import json
 import logging
 
@@ -59,22 +60,25 @@ def gmail_callback():
 
     This endpoint is called by Google after the user grants consent.
     It exchanges the auth code for tokens, stores the encrypted
-    refresh token, and triggers a background backfill sync.
+    refresh token, triggers a background backfill sync, and redirects
+    the user back to the web application dashboard.
 
     Query params (set by Google):
         - code: Authorization code
         - state: Our state string with user context
     """
+    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+
     code = request.args.get("code")
     state_str = request.args.get("state")
     error = request.args.get("error")
 
     if error:
         logger.warning(f"Gmail OAuth error: {error}")
-        return jsonify({"error": f"Gmail authorization denied: {error}"}), 400
+        return redirect(f"{frontend_url}/?error={error}")
 
     if not code or not state_str:
-        return jsonify({"error": "Missing authorization code or state."}), 400
+        return redirect(f"{frontend_url}/?error=missing_code_or_state")
 
     # Parse state
     try:
@@ -83,23 +87,21 @@ def gmail_callback():
         start_date = state.get("start_date")
         sender_filter = state.get("sender_filter")
     except (json.JSONDecodeError, AttributeError):
-        return jsonify({"error": "Invalid state parameter."}), 400
+        return redirect(f"{frontend_url}/?error=invalid_state")
 
     if not user_id:
-        return jsonify({"error": "Missing user context in state."}), 400
+        return redirect(f"{frontend_url}/?error=missing_user_context")
 
     # Exchange code for tokens
     try:
         tokens = gmail_service.exchange_code(code)
     except Exception as e:
         logger.error(f"Failed to exchange OAuth code: {e}")
-        return jsonify({"error": "Failed to complete Gmail authorization."}), 500
+        return redirect(f"{frontend_url}/?error=auth_failed")
 
     refresh_token = tokens.get("refresh_token")
     if not refresh_token:
-        return jsonify({
-            "error": "No refresh token received. Please revoke app access in Google Account settings and try again."
-        }), 400
+        return redirect(f"{frontend_url}/?error=no_refresh_token")
 
     # Encrypt and store the refresh token
     try:
@@ -120,7 +122,7 @@ def gmail_callback():
 
     except Exception as e:
         logger.error(f"Failed to store Gmail connection: {e}")
-        return jsonify({"error": "Failed to save Gmail connection."}), 500
+        return redirect(f"{frontend_url}/?error=save_failed")
 
     # Trigger background backfill
     try:
@@ -133,13 +135,9 @@ def gmail_callback():
         logger.info(f"Backfill started: {job_result}")
     except Exception as e:
         logger.error(f"Failed to start backfill: {e}")
-        # Don't fail the whole callback — connection is saved
-        job_result = {"status": "backfill_failed", "error": str(e)}
 
-    return jsonify({
-        "message": "Gmail connected successfully.",
-        "sync": job_result,
-    }), 200
+    # Seamlessly redirect browser back to Next.js frontend UI dashboard
+    return redirect(f"{frontend_url}/?connected=true")
 
 
 @auth_bp.route("/gmail/status", methods=["GET"])

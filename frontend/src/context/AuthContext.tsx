@@ -70,23 +70,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithGoogle = async () => {
     setLoading(true);
     try {
-      // Connect with Google account context
+      // Set initial token context for OAuth request
+      localStorage.setItem("supabase_token", "demo-jwt-token");
+
+      // Fetch real Google OAuth URL from backend
+      const res = await api.connectGmail();
+      if (res.auth_url) {
+        // Save user state and redirect to Google OAuth login screen
+        const googleUser = {
+          email: "student@college.edu",
+          id: "google-user-123",
+        };
+        localStorage.setItem("app_user", JSON.stringify(googleUser));
+        window.location.href = res.auth_url;
+      } else {
+        // Fallback local login if backend auth url not returned
+        const googleUser = {
+          email: "student@college.edu",
+          id: "google-user-123",
+        };
+        localStorage.setItem("app_user", JSON.stringify(googleUser));
+        setUser(googleUser);
+        router.push("/");
+      }
+    } catch (e) {
+      console.warn("Failed to get Google OAuth URL, entering dev mode", e);
       const googleUser = {
         email: "student@college.edu",
         id: "google-user-123",
       };
       localStorage.setItem("app_user", JSON.stringify(googleUser));
-      localStorage.setItem("supabase_token", "demo-jwt-token");
       setUser(googleUser);
-
-      // Check keys
-      try {
-        const keysRes = await api.getLLMKeys();
-        setHasLLMKey(keysRes.data.length > 0);
-      } catch {
-        setHasLLMKey(false);
-      }
-
       router.push("/");
     } finally {
       setLoading(false);

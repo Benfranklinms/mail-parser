@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import { OpportunityCard } from "@/components/OpportunityCard";
 import { OpportunitySkeleton } from "@/components/OpportunitySkeleton";
 import { toast } from "sonner";
-import { Search, RefreshCw, Sparkles, Mail, ArrowRight, Briefcase } from "lucide-react";
+import { Search, RefreshCw, Sparkles, ArrowRight, Briefcase } from "lucide-react";
 import Link from "next/link";
 
 export default function Dashboard() {
@@ -42,6 +42,35 @@ export default function Dashboard() {
     loadOpportunities();
   }, [loadOpportunities]);
 
+  // Poll sync status when processing
+  useEffect(() => {
+    if (!syncStatus || syncStatus.status !== "processing") return;
+
+    const interval = setInterval(async () => {
+      try {
+        const latest = await api.getSyncStatus();
+        setSyncStatus(latest);
+
+        if (latest.status === "completed" || latest.status === "failed") {
+          clearInterval(interval);
+          setIsSyncing(false);
+          loadOpportunities();
+          if (latest.status === "completed") {
+            toast.success(`Sync finished! Extracted ${latest.extracted || 0} opportunities.`);
+          } else {
+            toast.error("Sync failed to finish.");
+          }
+          // Hide progress banner after 2s
+          setTimeout(() => setSyncStatus(null), 2000);
+        }
+      } catch (err) {
+        console.error("Error polling sync status:", err);
+      }
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, [syncStatus, loadOpportunities]);
+
   // Handle Manual Trigger Sync
   const handleTriggerSync = async () => {
     setIsSyncing(true);
@@ -49,11 +78,16 @@ export default function Dashboard() {
     try {
       const res = await api.triggerSync();
       setSyncStatus(res);
-      toast.success("Incremental sync triggered successfully!");
-      setTimeout(() => loadOpportunities(), 3000);
+      
+      // If immediate complete
+      if (res.status === "completed") {
+        setIsSyncing(false);
+        toast.success("Inbox already up to date!");
+        loadOpportunities();
+        setTimeout(() => setSyncStatus(null), 2000);
+      }
     } catch {
       toast.error("Failed to start sync");
-    } finally {
       setIsSyncing(false);
     }
   };

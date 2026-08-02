@@ -139,8 +139,8 @@ def build_search_query(
         parts.append(f"from:{sender_filter}")
 
     if keywords:
-        # OR together all keywords in subject
-        keyword_query = " OR ".join(f"subject:{kw}" for kw in keywords)
+        # Search keywords across subject and body
+        keyword_query = " OR ".join(kw for kw in keywords)
         parts.append(f"({keyword_query})")
 
     return " ".join(parts)

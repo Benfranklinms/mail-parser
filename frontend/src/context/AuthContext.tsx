@@ -68,42 +68,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, loading, pathname, router]);
 
   const loginWithGoogle = async () => {
-    setLoading(true);
     try {
-      // Set initial token context for OAuth request
       localStorage.setItem("supabase_token", "demo-jwt-token");
+      const googleUser = {
+        email: "benfranklinms.mec@gmail.com",
+        id: "4cc1d2c8-e050-4e9a-94bf-2bffb32750b7",
+      };
+      localStorage.setItem("app_user", JSON.stringify(googleUser));
 
       // Fetch real Google OAuth URL from backend
       const res = await api.connectGmail();
-      if (res.auth_url) {
-        // Save user state and redirect to Google OAuth login screen
-        const googleUser = {
-          email: "student@college.edu",
-          id: "google-user-123",
-        };
-        localStorage.setItem("app_user", JSON.stringify(googleUser));
+      if (res && res.auth_url) {
         window.location.href = res.auth_url;
       } else {
-        // Fallback local login if backend auth url not returned
-        const googleUser = {
-          email: "student@college.edu",
-          id: "google-user-123",
-        };
-        localStorage.setItem("app_user", JSON.stringify(googleUser));
         setUser(googleUser);
         router.push("/");
       }
     } catch (e) {
       console.warn("Failed to get Google OAuth URL, entering dev mode", e);
       const googleUser = {
-        email: "student@college.edu",
-        id: "google-user-123",
+        email: "benfranklinms.mec@gmail.com",
+        id: "4cc1d2c8-e050-4e9a-94bf-2bffb32750b7",
       };
       localStorage.setItem("app_user", JSON.stringify(googleUser));
       setUser(googleUser);
       router.push("/");
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -353,12 +353,14 @@ def _do_backfill(
         completed_at=datetime.now(timezone.utc).isoformat(),
     )
 
-    logger.info(
-        f"Backfill completed for user {user_id}: "
-        f"{_jobs[job_id]['extracted']} extracted, "
-        f"{_jobs[job_id]['filtered']} filtered, "
-        f"{_jobs[job_id]['errors']} errors"
-    )
+    with _jobs_lock:
+        if job_id in _jobs:
+            logger.info(
+                f"Backfill completed for user {user_id}: "
+                f"{_jobs[job_id]['extracted']} extracted, "
+                f"{_jobs[job_id]['filtered']} filtered, "
+                f"{_jobs[job_id]['errors']} errors"
+            )
 
 
 def _run_incremental(job_id: str, user_id: str, app=None):

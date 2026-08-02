@@ -277,6 +277,14 @@ def _do_backfill(
 
     logger.info(f"Backfill search query: {query}")
 
+    # Clear old opportunities prior to start_date if backfill date is supplied
+    if start_date:
+        try:
+            logger.info(f"Clearing opportunities created before {start_date} for user {user_id}")
+            supabase.table("opportunities").delete().eq("user_id", user_id).lt("created_at", start_date).execute()
+        except Exception as e:
+            logger.warning(f"Failed to clear old opportunities: {e}")
+
     # 3. Search for matching messages
     messages = gmail_service.search_messages(service, query)
     total = len(messages)

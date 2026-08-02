@@ -158,7 +158,7 @@ def _extract_company_from_subject(subject: str) -> Optional[str]:
     clean_subj = re.sub(r"^(fwd|fw|re):\s*", "", subject, flags=re.I).strip()
 
     # Pattern 1: [MEC2K27] Company Name Placement / Internship Drive
-    m = re.search(r"\[[A-Za-z0-9]+\]\s*([A-Za-z0-9\s\.\&\-\+\(\)]+?)\s+(?:placement|internship|recruitment|drive|hiring|off-campus|on-campus)", clean_subj, re.I)
+    m = re.search(r"\[[A-Za-z0-9]+\]\s*([A-Za-z0-9\s\.\&\-\+\(\)]+?)\s+(?:campus\s+)?(?:placement|internship|recruitment|drive|hiring|off-campus|on-campus)", clean_subj, re.I)
     if m:
         name = m.group(1).strip(" -|_")
         if len(name) > 1:

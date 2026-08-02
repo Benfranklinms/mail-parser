@@ -12,6 +12,7 @@ export interface Opportunity {
   role_type: RoleType;
   salary_or_stipend: string | null;
   bond: string | null;
+  slot?: string | null;
   last_date: string | null;
   register_links: string[];
   raw_email_ref: string;

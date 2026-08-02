@@ -529,6 +529,7 @@ def _upsert_opportunity(supabase, user_id: str, message_id: str, result: dict):
         "role_type": result.get("role_type", "unclear"),
         "salary_or_stipend": result.get("salary_or_stipend"),
         "bond": result.get("bond"),
+        "slot": result.get("slot"),
         "last_date": result.get("last_date"),
         "register_links": result.get("register_links", []),
         "raw_email_ref": message_id,

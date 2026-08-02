@@ -26,6 +26,7 @@ EXTRACTION_SCHEMA = {
     "role_type": "internship | full-time | PPO | unclear",
     "salary_or_stipend": "string or null",
     "bond": "string or null",
+    "slot": "string or null",
     "last_date": "string or null",
     "register_links": ["string"],
 }
@@ -41,6 +42,7 @@ Fields to extract:
 - role_type: One of "internship", "full-time", "PPO", or "unclear"
 - salary_or_stipend: The CTC/salary/stipend as stated (e.g. "6 LPA", "₹25,000/month", "unpaid"). Use null if not mentioned.
 - bond: Service bond requirement (e.g. "2 years", "none"). Use null if not mentioned.
+- slot: Placement drive slot/tier designation if specified (e.g. "Slot 1", "Slot 2", "Super Dream", "Dream"). Use null if not mentioned.
 - last_date: Registration/application deadline date as stated in the email. Use null if not mentioned.
 - register_links: Array of ALL registration/application URLs found in the email. Empty array if none found.
 
@@ -58,6 +60,7 @@ EMPTY_RESULT = {
     "role_type": "unclear",
     "salary_or_stipend": None,
     "bond": None,
+    "slot": None,
     "last_date": None,
     "register_links": [],
 }
@@ -107,7 +110,7 @@ def _validate_result(result: dict) -> dict:
     if not isinstance(result, dict):
         return validated
 
-    for key in ["company", "role", "salary_or_stipend", "bond", "last_date"]:
+    for key in ["company", "role", "salary_or_stipend", "bond", "slot", "last_date"]:
         val = result.get(key)
         if val is not None and isinstance(val, str) and val.strip():
             validated[key] = val.strip()

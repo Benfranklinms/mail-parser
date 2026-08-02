@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Opportunity, ApplicationStatus } from "@/types";
-import { ExternalLink, Calendar, CheckCircle2, Clock, Award, Banknote, Shield, AlertCircle } from "lucide-react";
+import { ExternalLink, Calendar, CheckCircle2, Clock, Award, Banknote, Shield, AlertCircle, Tag } from "lucide-react";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -20,6 +20,7 @@ export function OpportunityCard({ opportunity, onStatusChange }: OpportunityCard
     role_type,
     salary_or_stipend,
     bond,
+    slot,
     last_date,
     register_links,
     application_status,
@@ -107,12 +108,18 @@ export function OpportunityCard({ opportunity, onStatusChange }: OpportunityCard
             {role || "General Placement Drive"}
           </p>
 
-          {/* Details Pill Grid: Salary & Bond */}
+          {/* Details Pill Grid: Salary, Slot & Bond */}
           <div className="flex flex-wrap gap-2 text-xs">
             {salary_or_stipend && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--surface-muted)] border border-[var(--border)] font-mono-plex font-medium text-[var(--ink)] text-[11px]">
                 <Banknote className="w-3 h-3 text-[var(--ink-muted)]" />
                 <span>{salary_or_stipend}</span>
+              </span>
+            )}
+            {slot && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--accent-light)] border border-[var(--accent)]/30 font-mono-plex text-[var(--accent)] text-[11px] font-semibold">
+                <Tag className="w-3 h-3 text-[var(--accent)]" />
+                <span>Slot: {slot}</span>
               </span>
             )}
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--surface-muted)] border border-[var(--border)] font-mono-plex text-[var(--ink-muted)] text-[11px]">

@@ -5,7 +5,7 @@ Three-stage pipeline for extracting structured placement opportunity
 data from email bodies:
 
 1. Pre-filter: Confirm the email is actually a placement opportunity
-2. Regex pass: Extract salary, dates, links, company, role, and role_type
+2. Regex pass: Extract salary, dates, links, company, role, role_type, and slot
 3. LLM fallback: Use the user's LLM provider for fields regex couldn't get
 
 The merge step combines results, preferring regex for structured data
@@ -152,6 +152,11 @@ _ROLE_KEYWORDS = [
 
 _ROLE_PATTERN = re.compile(r"\b(" + "|".join(_ROLE_KEYWORDS) + r")\b", re.IGNORECASE)
 
+_SLOT_PATTERNS = [
+    re.compile(r"(?:slot|tier|category)[\s:]*(slot\s*\d+|slot\s*[a-z]|\d+|super\s*dream|dream)", re.IGNORECASE),
+    re.compile(r"\b(slot\s*\d+|slot\s*[a-z]|super\s*dream|dream\s*company)\b", re.IGNORECASE)
+]
+
 
 def _extract_company_from_subject(subject: str) -> Optional[str]:
     """Extract company name from subject using regex heuristics."""
@@ -207,6 +212,16 @@ def _extract_role_type(text: str) -> str:
     return "unclear"
 
 
+def _extract_slot(text: str) -> Optional[str]:
+    """Extract placement drive slot or tier designation."""
+    for pat in _SLOT_PATTERNS:
+        m = pat.search(text)
+        if m:
+            matched = m.group(0).strip()
+            return matched.title()
+    return None
+
+
 def regex_extract(body: str, subject: str = "") -> dict:
     """Extract structured fields from email text using regex patterns."""
     combined = f"{subject}\n{body}" if subject else body
@@ -216,6 +231,7 @@ def regex_extract(body: str, subject: str = "") -> dict:
         "role": _extract_role(combined),
         "role_type": _extract_role_type(combined),
         "salary_or_stipend": _extract_salary(combined),
+        "slot": _extract_slot(combined),
         "last_date": _extract_date(combined),
         "register_links": _extract_links(body),
         "bond": None,
@@ -251,10 +267,7 @@ def _extract_date(text: str) -> Optional[str]:
 
 
 def _extract_links(text: str) -> list:
-    """Extract all registration and application links from text.
-
-    Excludes generic college footers, social media, and unsubscribe links.
-    """
+    """Extract all registration and application links from text."""
     _GENERAL_URL_PATTERN = re.compile(
         r"https?://[^\s<>\"')\]]+",
         re.IGNORECASE,
@@ -327,7 +340,7 @@ def merge_results(regex_result: dict, llm_result: dict) -> dict:
     """Merge regex and LLM extraction results."""
     merged = EMPTY_RESULT.copy()
 
-    for field in ["company", "role", "role_type", "bond"]:
+    for field in ["company", "role", "role_type", "bond", "slot"]:
         llm_val = llm_result.get(field)
         regex_val = regex_result.get(field)
         merged[field] = llm_val if llm_val is not None else regex_val
@@ -351,12 +364,12 @@ def merge_results(regex_result: dict, llm_result: dict) -> dict:
 
     regex_contributed = any(
         regex_result.get(f) is not None
-        for f in ["salary_or_stipend", "last_date", "register_links", "company", "role"]
+        for f in ["salary_or_stipend", "last_date", "register_links", "company", "role", "slot"]
         if f != "register_links" or regex_result.get(f)
     )
     llm_contributed = any(
         llm_result.get(f) is not None
-        for f in ["company", "role", "role_type", "bond"]
+        for f in ["company", "role", "role_type", "bond", "slot"]
     )
 
     if regex_contributed and llm_contributed:
@@ -396,6 +409,7 @@ def run_extraction_pipeline(
             or regex_result.get("role") is None
             or regex_result.get("role_type") is None
             or regex_result.get("bond") is None
+            or regex_result.get("slot") is None
         )
 
         if needs_llm:

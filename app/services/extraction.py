@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 # Stage 1: Pre-filter
 # =============================================================================
 
-# Keywords that indicate a placement/internship opportunity
 _PLACEMENT_KEYWORDS = [
     r"placement",
     r"internship",
@@ -51,7 +50,6 @@ _PLACEMENT_KEYWORDS = [
     r"deadline",
 ]
 
-# Keywords that indicate the email is NOT a placement opportunity
 _NEGATIVE_KEYWORDS = [
     r"newsletter",
     r"unsubscribe",
@@ -74,25 +72,12 @@ _NEGATIVE_PATTERN = re.compile(
 
 
 def pre_filter(subject: str, sender: str, body: str) -> bool:
-    """Check if an email looks like a placement opportunity.
+    """Check if an email looks like a placement opportunity."""
+    combined_text = f"{subject} {body[:2000]}"
 
-    Args:
-        subject: Email subject line.
-        sender: Sender email address or display name.
-        body: Email body text.
-
-    Returns:
-        True if the email appears to be a placement opportunity.
-    """
-    combined_text = f"{subject} {body[:2000]}"  # Check first 2000 chars of body
-
-    # Check for placement-positive keywords
     positive_matches = len(_PLACEMENT_PATTERN.findall(combined_text))
-
-    # Check for negative keywords
     negative_matches = len(_NEGATIVE_PATTERN.findall(combined_text))
 
-    # Need at least 1 positive keyword and positive should outweigh negative
     if positive_matches == 0:
         return False
 
@@ -106,94 +91,47 @@ def pre_filter(subject: str, sender: str, body: str) -> bool:
 # Stage 2: Regex extraction
 # =============================================================================
 
-# --- Salary / Stipend patterns ---
-
 _SALARY_PATTERNS = [
-    # CTC patterns: "6 LPA", "6.5 LPA", "6 lakhs", "₹6 LPA"
     re.compile(
         r"(?:ctc|salary|package|compensation)[\s:]*(?:(?:rs\.?|₹|inr)\s*)?(\d+(?:\.\d+)?)\s*(?:lpa|lakhs?|l(?:akh)?)\s*(?:per\s*annum)?",
         re.IGNORECASE,
     ),
-    # Standalone LPA: "6 LPA", "6.5LPA"
     re.compile(
         r"(?:rs\.?|₹|inr)?\s*(\d+(?:\.\d+)?)\s*(?:lpa|lakhs?\s*per\s*annum|lpa)",
         re.IGNORECASE,
     ),
-    # Indian number format: "6,00,000" or "₹6,00,000"
     re.compile(
         r"(?:ctc|salary|package)[\s:]*(?:rs\.?|₹|inr)\s*(\d{1,3}(?:,\d{2})*(?:,\d{3})?)",
         re.IGNORECASE,
     ),
-    # Stipend per month: "₹25,000/month", "25000 per month"
     re.compile(
         r"(?:stipend|salary)[\s:]*(?:rs\.?|₹|inr)?\s*(\d[\d,]*)\s*(?:/\s*month|per\s*month|p\.?m\.?|monthly)",
         re.IGNORECASE,
     ),
-    # Simple stipend: "Stipend: ₹25,000"
     re.compile(
         r"stipend[\s:]+(?:rs\.?|₹|inr)?\s*(\d[\d,]*)",
         re.IGNORECASE,
     ),
-    # "unpaid" internship
     re.compile(
         r"\b(unpaid)\b",
         re.IGNORECASE,
     ),
 ]
 
-# --- Date patterns ---
-
 _DATE_CONTEXT_PATTERNS = [
-    # "Last date: 25/12/2025", "Deadline: 25-12-2025", "Last date to register: 25/12/2025"
     re.compile(
         r"(?:last\s*date|deadline|register\s*(?:by|before)|apply\s*(?:by|before)|last\s*day)(?:\s+\w+){0,5}?[\s:]+(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})",
         re.IGNORECASE,
     ),
-    # "Last date: 25 December 2025", "Deadline: Dec 25, 2025"
     re.compile(
         r"(?:last\s*date|deadline|register\s*(?:by|before)|apply\s*(?:by|before)|last\s*day)(?:\s+\w+){0,5}?[\s:]+(\d{1,2}\s*(?:st|nd|rd|th)?\s*(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s*(?:,?\s*\d{2,4})?)",
         re.IGNORECASE,
     ),
-    # "December 25, 2025" or "25 December 2025" with context keyword nearby
     re.compile(
         r"(?:last\s*date|deadline|register\s*(?:by|before)|apply\s*(?:by|before)|last\s*day)(?:\s+\w+){0,5}?[\s:]+(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s*\d{1,2}\s*(?:st|nd|rd|th)?\s*,?\s*\d{2,4})",
         re.IGNORECASE,
     ),
 ]
-
-# --- Link patterns ---
-
-_REGISTRATION_DOMAINS = [
-    r"forms\.gle",
-    r"docs\.google\.com/forms",
-    r"forms\.google\.com",
-    r"greenhouse\.io",
-    r"lever\.co",
-    r"workday\.com",
-    r"naukri\.com",
-    r"internshala\.com",
-    r"unstop\.com",
-    r"dare2compete\.com",
-    r"superset\.com",
-    r"freshworks\.com",
-    r"zoho\.com/recruit",
-    r"careers\.",
-    r"jobs\.",
-    r"apply\.",
-    r"hire\.",
-]
-
-_REGISTRATION_LINK_PATTERN = re.compile(
-    r"https?://(?:" + "|".join(_REGISTRATION_DOMAINS) + r")[^\s<>\"')\]]*",
-    re.IGNORECASE,
-)
-
-_GENERAL_URL_PATTERN = re.compile(
-    r"https?://[^\s<>\"')\]]+",
-    re.IGNORECASE,
-)
-
-# --- Role patterns ---
 
 _ROLE_KEYWORDS = [
     r"software\s*engineer(?:ing)?(?:\s*intern)?",
@@ -270,16 +208,7 @@ def _extract_role_type(text: str) -> str:
 
 
 def regex_extract(body: str, subject: str = "") -> dict:
-    """Extract structured fields from email text using regex patterns.
-
-    Args:
-        body: The email body text.
-        subject: Optional email subject for additional context.
-
-    Returns:
-        Dict with extracted values. None for fields that couldn't be
-        confidently extracted.
-    """
+    """Extract structured fields from email text using regex patterns."""
     combined = f"{subject}\n{body}" if subject else body
 
     result = {
@@ -322,11 +251,38 @@ def _extract_date(text: str) -> Optional[str]:
 
 
 def _extract_links(text: str) -> list:
-    """Extract all registration/application links from text."""
-    reg_links = _REGISTRATION_LINK_PATTERN.findall(text)
+    """Extract all registration and application links from text.
+
+    Excludes generic college footers, social media, and unsubscribe links.
+    """
+    _GENERAL_URL_PATTERN = re.compile(
+        r"https?://[^\s<>\"')\]]+",
+        re.IGNORECASE,
+    )
+
     all_links = _GENERAL_URL_PATTERN.findall(text)
 
-    _EXCLUDED_DOMAINS = [
+    _REGISTRATION_INDICATORS = [
+        "forms.gle",
+        "docs.google.com/forms",
+        "forms.google.com",
+        "viewform",
+        "unstop.com",
+        "greenhouse.io",
+        "lever.co",
+        "workday",
+        "naukri",
+        "internshala",
+        "superset",
+        "zoho.com/recruit",
+        "careers.",
+        "jobs.",
+        "apply",
+        "register",
+        "form",
+    ]
+
+    _EXCLUDED_PATTERNS = [
         "google.com/maps",
         "goo.gl/maps",
         "facebook.com",
@@ -341,28 +297,25 @@ def _extract_links(text: str) -> list:
         "terms-of-service",
         "groups.google.com",
         "mec.ac.in",
+        "optout",
     ]
 
-    filtered_links = []
+    form_links = []
     seen = set()
-
-    for link in reg_links:
-        cleaned = link.rstrip(".,;:)")
-        if cleaned not in seen:
-            seen.add(cleaned)
-            filtered_links.append(cleaned)
 
     for link in all_links:
         cleaned = link.rstrip(".,;:)")
-        if cleaned in seen:
+        lower = cleaned.lower()
+
+        if any(excl in lower for excl in _EXCLUDED_PATTERNS):
             continue
 
-        is_excluded = any(excl in cleaned.lower() for excl in _EXCLUDED_DOMAINS)
-        if not is_excluded:
-            seen.add(cleaned)
-            filtered_links.append(cleaned)
+        if any(indicator in lower for indicator in _REGISTRATION_INDICATORS):
+            if cleaned not in seen:
+                seen.add(cleaned)
+                form_links.append(cleaned)
 
-    return filtered_links
+    return form_links
 
 
 # =============================================================================
@@ -374,7 +327,6 @@ def merge_results(regex_result: dict, llm_result: dict) -> dict:
     """Merge regex and LLM extraction results."""
     merged = EMPTY_RESULT.copy()
 
-    # Prefer non-null values
     for field in ["company", "role", "role_type", "bond"]:
         llm_val = llm_result.get(field)
         regex_val = regex_result.get(field)

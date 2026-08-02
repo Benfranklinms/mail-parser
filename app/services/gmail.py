@@ -52,6 +52,7 @@ def get_auth_url(state: Optional[str] = None) -> str:
         _get_client_config(),
         scopes=SCOPES,
         redirect_uri=os.environ.get("GOOGLE_REDIRECT_URI"),
+        autogenerate_code_verifier=False,
     )
 
     auth_url, _ = flow.authorization_url(
@@ -77,6 +78,7 @@ def exchange_code(code: str) -> dict:
         _get_client_config(),
         scopes=SCOPES,
         redirect_uri=os.environ.get("GOOGLE_REDIRECT_URI"),
+        autogenerate_code_verifier=False,
     )
 
     flow.fetch_token(code=code)

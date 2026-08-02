@@ -3,6 +3,8 @@ import { Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { Navbar } from "@/components/Navbar";
+import { AuthProvider } from "@/context/AuthContext";
+import { LLMKeyModal } from "@/components/LLMKeyModal";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -30,11 +32,14 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${ibmMono.variable}`}>
       <body className="bg-[var(--background)] text-[var(--ink)] antialiased min-h-screen flex flex-col font-sans">
-        <Navbar />
-        <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
-        </main>
-        <Toaster position="bottom-right" richColors />
+        <AuthProvider>
+          <Navbar />
+          <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {children}
+          </main>
+          <LLMKeyModal />
+          <Toaster position="bottom-right" richColors />
+        </AuthProvider>
       </body>
     </html>
   );

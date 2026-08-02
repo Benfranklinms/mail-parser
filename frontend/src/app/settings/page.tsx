@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { GmailConnectionStatus, LLMKeyInfo, OpenRouterModel } from "@/types";
@@ -21,12 +22,14 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"gmail" | "llm" | "account" | "sync">("gmail");
 
   // Gmail State
   const [gmailStatus, setGmailStatus] = useState<GmailConnectionStatus | null>(null);
   const [syncSinceDate, setSyncSinceDate] = useState<string>("2026-01-01");
   const [connectingGmail, setConnectingGmail] = useState(false);
+  const [manualSyncing, setManualSyncing] = useState(false);
 
   // LLM State
   const [provider, setProvider] = useState<"gemini" | "groq" | "openrouter">("gemini");
@@ -94,6 +97,38 @@ export default function SettingsPage() {
       toast.error("Failed to start Gmail auth");
     } finally {
       setConnectingGmail(false);
+    }
+  };
+
+  // Run Manual Sync Trigger with full status polling
+  const handleRunManualSync = async () => {
+    setManualSyncing(true);
+    toast.info("Scanning placement inbox...");
+    try {
+      const res = await api.triggerSync();
+      if (res && res.job_id) {
+        // Poll sync status until completed
+        for (let i = 0; i < 20; i++) {
+          await new Promise((r) => setTimeout(r, 1500));
+          const statusRes = await api.getSyncStatus();
+          if (statusRes.status === "completed" || statusRes.status === "failed") {
+            break;
+          }
+        }
+      }
+
+      toast.success("Inbox sync completed! Redirecting to Dashboard...");
+      const updatedStatus = await api.getGmailStatus();
+      setGmailStatus(updatedStatus);
+
+      // Redirect to dashboard so user sees new extracted cards
+      setTimeout(() => {
+        router.push("/");
+      }, 1000);
+    } catch {
+      toast.error("Failed to execute sync");
+    } finally {
+      setManualSyncing(false);
     }
   };
 
@@ -251,15 +286,12 @@ export default function SettingsPage() {
 
               {gmailStatus?.connected && (
                 <button
-                  onClick={async () => {
-                    toast.info("Incremental sync started...");
-                    await api.triggerSync();
-                    toast.success("Sync finished!");
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--surface-muted)] border border-[var(--border)] text-xs font-medium hover:border-[var(--accent)] transition-colors"
+                  onClick={handleRunManualSync}
+                  disabled={manualSyncing}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--surface-muted)] border border-[var(--border)] text-xs font-medium hover:border-[var(--accent)] transition-colors disabled:opacity-50"
                 >
-                  <RefreshCw className="w-3.5 h-3.5 text-[var(--accent)]" />
-                  <span>Run Manual Sync</span>
+                  <RefreshCw className={`w-3.5 h-3.5 text-[var(--accent)] ${manualSyncing ? "animate-spin" : ""}`} />
+                  <span>{manualSyncing ? "Scanning Inbox..." : "Run Manual Sync"}</span>
                 </button>
               )}
             </div>

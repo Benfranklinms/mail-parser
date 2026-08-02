@@ -1,15 +1,14 @@
 """
 Sync routes.
 
-Endpoints for checking sync job status and triggering incremental sync.
+Endpoints for checking sync job status and triggering backfill or incremental sync.
 """
 
 import logging
-
-from flask import Blueprint, jsonify, g, current_app
+from flask import Blueprint, jsonify, request, g, current_app
 
 from app.auth.middleware import require_auth
-from app.services.sync_manager import get_user_latest_job, run_incremental_sync
+from app.services.sync_manager import get_user_latest_job, run_incremental_sync, start_backfill
 
 logger = logging.getLogger(__name__)
 
@@ -19,12 +18,7 @@ sync_bp = Blueprint("sync", __name__, url_prefix="/sync")
 @sync_bp.route("/status", methods=["GET"])
 @require_auth
 def sync_status():
-    """Get the current sync job status for the logged-in user.
-
-    Returns:
-        JSON with job progress: status, total, processed, extracted,
-        filtered, errors, timestamps.
-    """
+    """Get the current sync job status for the logged-in user."""
     job = get_user_latest_job(g.user_id)
 
     if not job:
@@ -36,25 +30,38 @@ def sync_status():
     return jsonify(job), 200
 
 
+@sync_bp.route("/trigger", methods=["POST"])
 @sync_bp.route("/incremental", methods=["POST"])
 @require_auth
-def trigger_incremental():
-    """Trigger an incremental sync for the logged-in user.
+def trigger_sync():
+    """Trigger a sync for the logged-in user.
 
-    Fetches new emails since the last sync using Gmail's history API.
-
-    Returns:
-        JSON with job_id and initial status.
+    Request body (optional):
+    {
+        "start_date": "2026-08-01" // ISO date string
+    }
     """
-    try:
-        result = run_incremental_sync(
-            user_id=g.user_id,
-            app=current_app._get_current_object(),
-        )
+    data = request.get_json(silent=True) or {}
+    start_date = data.get("start_date")
 
-        status_code = 202 if result["status"] == "processing" else 200
+    try:
+        if start_date:
+            logger.info(f"Triggering backfill sync from start_date: {start_date}")
+            result = start_backfill(
+                user_id=g.user_id,
+                start_date=start_date,
+                app=current_app._get_current_object(),
+            )
+        else:
+            logger.info("Triggering incremental sync")
+            result = run_incremental_sync(
+                user_id=g.user_id,
+                app=current_app._get_current_object(),
+            )
+
+        status_code = 202 if result.get("status") == "processing" else 200
         return jsonify(result), status_code
 
     except Exception as e:
-        logger.error(f"Failed to start incremental sync: {e}")
+        logger.error(f"Failed to start sync: {e}")
         return jsonify({"error": "Failed to start sync."}), 500

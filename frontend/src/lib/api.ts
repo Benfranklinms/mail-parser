@@ -264,12 +264,16 @@ export const api = {
     }
   },
 
-  // Trigger Incremental Sync
-  async triggerSync(): Promise<SyncStatus> {
+  // Trigger Sync (Incremental or Backfill with start_date)
+  async triggerSync(params?: { start_date?: string }): Promise<SyncStatus> {
     try {
-      const res = await fetch(`${API_BASE_URL}/sync/incremental`, {
+      const res = await fetch(`${API_BASE_URL}/sync/trigger`, {
         method: "POST",
-        headers: getAuthHeader(),
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeader(),
+        },
+        body: JSON.stringify(params || {}),
       });
       if (!res.ok) throw new Error("Failed to trigger sync");
       return await res.json();

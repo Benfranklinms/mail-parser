@@ -103,9 +103,9 @@ export default function SettingsPage() {
   // Run Manual Sync Trigger with full status polling
   const handleRunManualSync = async () => {
     setManualSyncing(true);
-    toast.info("Scanning placement inbox...");
+    toast.info(`Scanning placement inbox since ${syncSinceDate}...`);
     try {
-      const res = await api.triggerSync();
+      const res = await api.triggerSync({ start_date: syncSinceDate });
       if (res && res.job_id) {
         // Poll sync status until completed
         for (let i = 0; i < 20; i++) {

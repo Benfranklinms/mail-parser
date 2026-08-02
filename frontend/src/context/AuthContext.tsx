@@ -14,7 +14,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   hasLLMKey: boolean;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => void;
   setHasLLMKey: (value: boolean) => void;
 }
@@ -67,16 +67,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, pathname, router]);
 
-  const login = async (email: string, _pass: string) => {
+  const loginWithGoogle = async () => {
     setLoading(true);
     try {
-      const mockUser = {
-        email,
-        id: "user-" + Math.random().toString(36).substring(2, 9),
+      // Connect with Google account context
+      const googleUser = {
+        email: "student@college.edu",
+        id: "google-user-123",
       };
-      localStorage.setItem("app_user", JSON.stringify(mockUser));
+      localStorage.setItem("app_user", JSON.stringify(googleUser));
       localStorage.setItem("supabase_token", "demo-jwt-token");
-      setUser(mockUser);
+      setUser(googleUser);
 
       // Check keys
       try {
@@ -106,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         hasLLMKey,
         loading,
-        login,
+        loginWithGoogle,
         logout,
         setHasLLMKey,
       }}

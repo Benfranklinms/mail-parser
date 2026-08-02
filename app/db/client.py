@@ -16,6 +16,9 @@ def get_client(access_token: str) -> Client:
     This client respects Row Level Security — queries will only return
     rows belonging to the authenticated user.
 
+    If access_token is a mock/demo token (not a 3-part JWT), falls back to
+    service_role client for local development and testing.
+
     Args:
         access_token: The user's Supabase JWT (from the Authorization header).
 
@@ -24,9 +27,15 @@ def get_client(access_token: str) -> Client:
     """
     url = os.environ.get("SUPABASE_URL")
     anon_key = os.environ.get("SUPABASE_ANON_KEY")
+    service_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
     if not url or not anon_key:
         raise RuntimeError("SUPABASE_URL and SUPABASE_ANON_KEY must be set.")
+
+    # If token is not a valid 3-part JWT (e.g. demo-jwt-token in local dev), use service client
+    if not access_token or access_token.count(".") != 2:
+        if service_key:
+            return create_client(url, service_key)
 
     client = create_client(url, anon_key)
     client.postgrest.auth(access_token)

@@ -9,7 +9,7 @@ import {
   RoleType,
 } from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
 
 // Mock data for preview/demo fallback
 const MOCK_OPPORTUNITIES: Opportunity[] = [

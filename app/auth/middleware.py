@@ -16,6 +16,9 @@ from flask import request, jsonify, g
 
 logger = logging.getLogger(__name__)
 
+# Fallback user ID for local demo testing that exists in auth.users
+DEMO_USER_ID = "4cc1d2c8-e050-4e9a-94bf-2bffb32750b7"
+
 
 def _get_verification_key(secret_str: str):
     """Parse secret_str as a raw secret, JWK dict, or JWKS dict."""
@@ -56,7 +59,7 @@ def require_auth(f):
 
         # Support demo/mock tokens in development mode for instant local testing
         if token in ("demo-jwt-token", "mock-jwt-token", "demo-token"):
-            g.user_id = "00000000-0000-0000-0000-000000000000"
+            g.user_id = DEMO_USER_ID
             g.access_token = token
             return f(*args, **kwargs)
 

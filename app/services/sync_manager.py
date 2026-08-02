@@ -311,30 +311,29 @@ def _do_backfill(
 
             if result is None:
                 # Filtered out
-                _update_job(
-                    job_id,
-                    processed=i + 1,
-                    filtered=_jobs[job_id]["filtered"] + 1,
-                )
+                with _jobs_lock:
+                    if job_id in _jobs:
+                        _jobs[job_id]["filtered"] += 1
+                        _jobs[job_id]["processed"] = i + 1
                 continue
 
             # Upsert opportunity into database
             _upsert_opportunity(supabase, user_id, msg_ref["id"], result)
 
-            _update_job(
-                job_id,
-                processed=i + 1,
-                extracted=_jobs[job_id]["extracted"] + 1,
-            )
+            with _jobs_lock:
+                if job_id in _jobs:
+                    _jobs[job_id]["extracted"] += 1
+                    _jobs[job_id]["processed"] = i + 1
 
         except Exception as e:
             logger.error(f"Error processing message {msg_ref['id']}: {e}")
             with _jobs_lock:
-                _jobs[job_id]["errors"] += 1
-                _jobs[job_id]["error_details"].append(
-                    {"message_id": msg_ref["id"], "error": str(e)}
-                )
-                _jobs[job_id]["processed"] = i + 1
+                if job_id in _jobs:
+                    _jobs[job_id]["errors"] += 1
+                    _jobs[job_id]["error_details"].append(
+                        {"message_id": msg_ref["id"], "error": str(e)}
+                    )
+                    _jobs[job_id]["processed"] = i + 1
 
     # 6. Store the current historyId for future incremental sync
     try:

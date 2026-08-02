@@ -5,7 +5,7 @@ Three-stage pipeline for extracting structured placement opportunity
 data from email bodies:
 
 1. Pre-filter: Confirm the email is actually a placement opportunity
-2. Regex pass: Extract salary, dates, and links using patterns (free, fast)
+2. Regex pass: Extract salary, dates, links, company, role, and role_type
 3. LLM fallback: Use the user's LLM provider for fields regex couldn't get
 
 The merge step combines results, preferring regex for structured data
@@ -116,7 +116,7 @@ _SALARY_PATTERNS = [
     ),
     # Standalone LPA: "6 LPA", "6.5LPA"
     re.compile(
-        r"(?:rs\.?|₹|inr)?\s*(\d+(?:\.\d+)?)\s*(?:lpa|lakhs?\s*per\s*annum)",
+        r"(?:rs\.?|₹|inr)?\s*(\d+(?:\.\d+)?)\s*(?:lpa|lakhs?\s*per\s*annum|lpa)",
         re.IGNORECASE,
     ),
     # Indian number format: "6,00,000" or "₹6,00,000"
@@ -161,18 +161,8 @@ _DATE_CONTEXT_PATTERNS = [
     ),
 ]
 
-# Standalone date patterns (lower confidence, used as fallback)
-_STANDALONE_DATE_PATTERNS = [
-    re.compile(r"\b(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})\b"),
-    re.compile(
-        r"\b(\d{1,2}\s*(?:st|nd|rd|th)?\s*(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s*(?:,?\s*\d{2,4})?)\b",
-        re.IGNORECASE,
-    ),
-]
-
 # --- Link patterns ---
 
-# High-confidence registration link domains
 _REGISTRATION_DOMAINS = [
     r"forms\.gle",
     r"docs\.google\.com/forms",
@@ -198,11 +188,85 @@ _REGISTRATION_LINK_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-# General URL pattern (fallback — collects ALL links)
 _GENERAL_URL_PATTERN = re.compile(
     r"https?://[^\s<>\"')\]]+",
     re.IGNORECASE,
 )
+
+# --- Role patterns ---
+
+_ROLE_KEYWORDS = [
+    r"software\s*engineer(?:ing)?(?:\s*intern)?",
+    r"sde\s*(?:1|2|i|ii|intern)?",
+    r"frontend\s*developer",
+    r"backend\s*developer",
+    r"full\s*stack\s*developer",
+    r"graduate\s*trainee",
+    r"management\s*trainee",
+    r"product\s*manager(?:\s*intern)?",
+    r"data\s*analyst",
+    r"qa\s*engineer",
+    r"quality\s*assurance",
+    r"associate\s*software\s*engineer",
+    r"developer",
+    r"intern",
+]
+
+_ROLE_PATTERN = re.compile(r"\b(" + "|".join(_ROLE_KEYWORDS) + r")\b", re.IGNORECASE)
+
+
+def _extract_company_from_subject(subject: str) -> Optional[str]:
+    """Extract company name from subject using regex heuristics."""
+    clean_subj = re.sub(r"^(fwd|fw|re):\s*", "", subject, flags=re.I).strip()
+
+    # Pattern 1: [MEC2K27] Company Name Placement / Internship Drive
+    m = re.search(r"\[[A-Za-z0-9]+\]\s*([A-Za-z0-9\s\.\&\-\+\(\)]+?)\s+(?:placement|internship|recruitment|drive|hiring|off-campus|on-campus)", clean_subj, re.I)
+    if m:
+        name = m.group(1).strip(" -|_")
+        if len(name) > 1:
+            return name
+
+    # Pattern 2: Placement Drive for <Company>
+    m = re.search(r"(?:placement|recruitment|hiring|drive)\s+(?:for|at|by)\s+([A-Za-z0-9\(\)\s\.\&\-]+)", clean_subj, re.I)
+    if m:
+        name = m.group(1).split("|")[0].split("-")[0].strip()
+        if len(name) > 1:
+            return name
+
+    # Pattern 3: <Company> Placement / Recruitment / Campus / Hiring / Drive
+    m = re.search(r"([A-Za-z0-9\(\)\s\.\&]+?)\s+(?:placement|recruitment|campus|hiring|drive)", clean_subj, re.I)
+    if m:
+        name = m.group(1).strip(" -|_")
+        if len(name) > 1 and name.lower() not in ("campus", "placement", "recruitment", "fwd", "re", "general"):
+            return name
+
+    # Pattern 4: Subject start before hyphen/pipe: "People10 - Campus Hiring"
+    if "-" in clean_subj or "|" in clean_subj:
+        first_part = re.split(r"[-|]", clean_subj)[0].strip()
+        if len(first_part) > 2 and not any(kw in first_part.lower() for kw in ["placement", "recruitment", "hiring", "drive", "campus"]):
+            return first_part
+
+    return None
+
+
+def _extract_role(text: str) -> Optional[str]:
+    """Extract role title from subject or body."""
+    m = _ROLE_PATTERN.search(text)
+    if m:
+        return m.group(0).title()
+    return None
+
+
+def _extract_role_type(text: str) -> str:
+    """Infer role type (internship, full-time, ppo) from text."""
+    lower_text = text.lower()
+    if "ppo" in lower_text:
+        return "ppo"
+    if "intern" in lower_text or "stipend" in lower_text:
+        return "internship"
+    if any(kw in lower_text for kw in ["full time", "full-time", "ctc", "lpa", "permanent"]):
+        return "full-time"
+    return "unclear"
 
 
 def regex_extract(body: str, subject: str = "") -> dict:
@@ -219,13 +283,12 @@ def regex_extract(body: str, subject: str = "") -> dict:
     combined = f"{subject}\n{body}" if subject else body
 
     result = {
+        "company": _extract_company_from_subject(subject) if subject else None,
+        "role": _extract_role(combined),
+        "role_type": _extract_role_type(combined),
         "salary_or_stipend": _extract_salary(combined),
         "last_date": _extract_date(combined),
         "register_links": _extract_links(body),
-        # Fields below are rarely extractable via regex — left for LLM
-        "company": None,
-        "role": None,
-        "role_type": None,
         "bond": None,
     }
 
@@ -237,7 +300,6 @@ def _extract_salary(text: str) -> Optional[str]:
     for pattern in _SALARY_PATTERNS:
         match = pattern.search(text)
         if match:
-            # Return the full match context for readability
             matched_text = match.group(0).strip()
             return matched_text
 
@@ -246,34 +308,24 @@ def _extract_salary(text: str) -> Optional[str]:
 
 def _extract_date(text: str) -> Optional[str]:
     """Extract registration deadline date from text."""
-    # First try context-aware patterns (higher confidence)
     for pattern in _DATE_CONTEXT_PATTERNS:
         match = pattern.search(text)
         if match:
             date_str = match.group(1).strip()
-            # Try to parse and validate the date
             try:
-                parsed = date_parser.parse(date_str, fuzzy=True, dayfirst=True)
-                return date_str  # Return the original string as found
+                date_parser.parse(date_str, fuzzy=True, dayfirst=True)
+                return date_str
             except (ValueError, OverflowError):
-                return date_str  # Return raw match even if parsing fails
+                return date_str
 
     return None
 
 
 def _extract_links(text: str) -> list:
-    """Extract all registration/application links from text.
-
-    Prioritizes known registration domains, falls back to all URLs.
-    Returns deduplicated list.
-    """
-    # First collect high-confidence registration links
+    """Extract all registration/application links from text."""
     reg_links = _REGISTRATION_LINK_PATTERN.findall(text)
-
-    # Also collect all URLs
     all_links = _GENERAL_URL_PATTERN.findall(text)
 
-    # Filter out common non-registration URLs
     _EXCLUDED_DOMAINS = [
         "google.com/maps",
         "goo.gl/maps",
@@ -287,19 +339,19 @@ def _extract_links(text: str) -> list:
         "unsubscribe",
         "privacy-policy",
         "terms-of-service",
+        "groups.google.com",
+        "mec.ac.in",
     ]
 
     filtered_links = []
     seen = set()
 
-    # Add registration links first (higher priority)
     for link in reg_links:
         cleaned = link.rstrip(".,;:)")
         if cleaned not in seen:
             seen.add(cleaned)
             filtered_links.append(cleaned)
 
-    # Then add remaining links that aren't excluded
     for link in all_links:
         cleaned = link.rstrip(".,;:)")
         if cleaned in seen:
@@ -319,37 +371,20 @@ def _extract_links(text: str) -> list:
 
 
 def merge_results(regex_result: dict, llm_result: dict) -> dict:
-    """Merge regex and LLM extraction results.
-
-    Strategy:
-    - Prefer regex for: register_links, last_date, salary_or_stipend
-      (regex is more reliable for structured patterns when matched)
-    - Prefer LLM for: company, role, role_type, bond
-    - Fall back to LLM for any fields regex left as None
-
-    Args:
-        regex_result: Output from regex_extract().
-        llm_result: Output from extract_with_llm().
-
-    Returns:
-        Merged dict with all fields populated where possible.
-        Includes 'extraction_method' tag.
-    """
+    """Merge regex and LLM extraction results."""
     merged = EMPTY_RESULT.copy()
 
-    # LLM-preferred fields
+    # Prefer non-null values
     for field in ["company", "role", "role_type", "bond"]:
         llm_val = llm_result.get(field)
         regex_val = regex_result.get(field)
         merged[field] = llm_val if llm_val is not None else regex_val
 
-    # Regex-preferred fields (only use LLM as fallback)
     for field in ["salary_or_stipend", "last_date"]:
         regex_val = regex_result.get(field)
         llm_val = llm_result.get(field)
         merged[field] = regex_val if regex_val is not None else llm_val
 
-    # Links: merge both sets, deduplicated, regex links first
     regex_links = regex_result.get("register_links", [])
     llm_links = llm_result.get("register_links", [])
 
@@ -362,10 +397,9 @@ def merge_results(regex_result: dict, llm_result: dict) -> dict:
 
     merged["register_links"] = merged_links
 
-    # Determine extraction method tag
     regex_contributed = any(
         regex_result.get(f) is not None
-        for f in ["salary_or_stipend", "last_date", "register_links"]
+        for f in ["salary_or_stipend", "last_date", "register_links", "company", "role"]
         if f != "register_links" or regex_result.get(f)
     )
     llm_contributed = any(
@@ -396,32 +430,15 @@ def run_extraction_pipeline(
     provider: str = "gemini",
     model_id: Optional[str] = None,
 ) -> Optional[dict]:
-    """Run the full extraction pipeline on a single email.
-
-    Args:
-        email_body: The email body text.
-        subject: The email subject.
-        sender: The sender address.
-        api_key: Decrypted LLM API key (None to skip LLM stage).
-        provider: LLM provider to use.
-        model_id: Optional specific model ID for the LLM.
-
-    Returns:
-        Extracted opportunity dict, or None if the email was filtered out.
-    """
-    # Stage 1: Pre-filter
+    """Run the full extraction pipeline on a single email."""
     if not pre_filter(subject, sender, email_body):
         logger.debug(f"Email filtered out: {subject[:50]}")
         return None
 
-    # Stage 2: Regex extraction
     regex_result = regex_extract(email_body, subject)
-
-    # Stage 3: LLM fallback (only if API key is available)
     llm_result = EMPTY_RESULT.copy()
 
     if api_key:
-        # Check which fields still need LLM
         needs_llm = (
             regex_result.get("company") is None
             or regex_result.get("role") is None
@@ -434,10 +451,7 @@ def run_extraction_pipeline(
             llm_result = extract_with_llm(
                 email_body, api_key, provider, subject, model_id
             )
-    else:
-        logger.debug("No LLM API key — skipping LLM extraction")
 
-    # Merge results
     merged = merge_results(regex_result, llm_result)
 
     return merged

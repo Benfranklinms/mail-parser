@@ -47,7 +47,7 @@ def require_auth(f):
             payload = jwt.decode(
                 token,
                 jwt_secret,
-                algorithms=["HS256"],
+                algorithms=["HS256", "ES256", "RS256"],
                 audience="authenticated",
             )
         except jwt.ExpiredSignatureError:
